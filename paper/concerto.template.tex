@@ -1,0 +1,867 @@
+%% Too Many Hands on the Throttle
+%% IEEE conference submission draft (B1)
+%% STATUS (rev. 2026-10-11): formalism revised to match simulator evidence;
+%% configuration audit completed (audit/mechanisms.csv); simulator results
+%% reported against PREREG.md. Testbed campaign NOT run. Incident catalogue pending.
+%% Target: AGENT'27 @ ICSE 2027 (8 pp + refs, IEEE, single-blind).
+
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\newtheorem{corollary}{Corollary}
+
+\newcommand{\sys}{\textsc{Concerto}}
+
+\begin{document}
+
+\title{Too Many Hands on the Throttle: Testing the\\Interaction of Autonomous Reliability Agents}
+
+\author{
+\IEEEauthorblockN{Abhishek Pandey}
+\IEEEauthorblockA{Meta\\
+pandeyabhi1987@gmail.com}
+\and
+\IEEEauthorblockN{Abhinav Pandey}
+\IEEEauthorblockA{Independent Researcher\\
+pandey.aby@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+A production service fleet runs an autoscaler, a load shedder, a circuit
+breaker, a concurrency limiter, a rate limiter, a timeout policy, a retry
+budget, and a router. These are separate control loops, owned by separate
+teams, configured through separate surfaces, and tuned in isolation. They
+all observe correlated signals and they all act on one plant. We argue that
+this arrangement can fail in ways that no single controller's telemetry
+attributes, and we characterize when.
+
+We identify three coupling channels and characterize each. \emph{Actuation
+coupling} arises when two actuators move the same plant variable: their
+gains superpose, and we show that controllers individually tuned inside the
+delay margin compose to an unstable loop, with the stability condition
+depending on a quantity no single controller's configuration surface
+exposes. \emph{Observation coupling} arises when one controller's action
+corrupts another's input: we show that when a load-reducing controller
+acting upstream of a provisioning controller's measurement point trips below
+the provisioner's utilization target, the composed system has a
+neutrally stable mode and can settle into persistent under-provisioning, a
+trap that changing gains or smoothing windows does not escape but reordering
+the two thresholds does. \emph{Topological coupling}
+arises when an action redistributes load, and we give the subcriticality
+condition under which ejection does not cascade.
+
+We then present \sys{}, an arbitration layer with one principle per channel:
+a single severity estimate with a bounded authority budget allocated rather
+than summed across actuators, counterfactual reconstruction of each
+controller's input signal, and topology-gated admission of redistributive
+actions. An audit of the configuration surfaces of Kubernetes, Envoy, Istio,
+and Linkerd finds no documented hook linking autoscaling to any protection
+mechanism, while Istio and Envoy expose narrow intra-proxy guards between
+ejection, load balancing, and retries.
+
+We report the model, the audit, pre-registered simulator experiments,
+and a first testbed experiment on unmodified Kubernetes, Envoy, and
+prometheus-adapter (Section \ref{sec:testbed}): %%TESTBED_ABS%%
+In simulation, the shared authority budget removes
+gain-superposition instability and topology gating outperforms
+ejection caps at high utilization, but the full arbiter does \emph{not} beat an
+expertly retuned baseline on attainment, and retuning \emph{does} escape the
+observation-coupling trap. Further testbed experiments (P1, P3, and the arbiter itself) are future work.
+\end{abstract}
+
+\begin{IEEEkeywords}
+multi-agent interaction, testing autonomous systems, reliability control, autoscaling, load shedding, circuit breaking, control
+allocation, cascading failure, microservices
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Ask an operator how their service protects itself under load and you will
+get a list. There is an autoscaler that adds replicas when utilization
+rises. There is a load shedder that rejects low-priority work when latency
+climbs. There is outlier detection that ejects unhealthy endpoints. There is
+a concurrency limiter that caps in-flight requests, a rate limiter that caps
+outbound calls, a timeout policy, a retry budget, and a router that moves
+traffic away from trouble.
+
+Each of these is a feedback controller. Each was designed in isolation,
+documented in isolation, and tuned in isolation. Most are configured through
+different surfaces, and in a large organization most are owned by different
+teams. And every one of them observes some function of the same underlying
+congestion state and acts, directly or indirectly, on that same state.
+
+Control engineers have a name for this situation. When several actuators
+have authority over one plant, the assignment of corrective effort among
+them is the control allocation problem, and it has been treated rigorously
+for decades in aerospace, where an aircraft has more control surfaces than
+axes of motion \cite{durham1993,johansen2013}. Service fleets have the same
+structure and do not use the same discipline. We allocate nothing. We run
+every controller at full authority and hope.
+
+This paper argues that the hope is misplaced in a specific and predictable
+way, and that the resulting failure modes are invisible from inside any
+individual controller.
+
+\subsection{Reliability controllers as autonomous agents}
+
+Each of these mechanisms is, in the sense used by the agent literature, an
+autonomous agent: it perceives part of the environment through its own
+signal, decides on its own policy, and acts without a human in the loop or a
+protocol with its peers. A fleet is therefore an uncoordinated multi-agent
+system whose agents were each validated alone. We treat the problem as one
+of \emph{verifying and testing agent interaction}: which properties of the
+composition can be checked statically from configuration, which require
+execution, and what an arbiter that mediates between agents buys. We do not
+claim these controllers learn or plan; the framing concerns autonomy and the
+absence of coordination, which is exactly what makes interaction failures
+hard to test for one agent at a time.
+
+\subsection{A failure no controller can see}
+
+Consider a fleet with an autoscaler and a load shedder, both configured with
+defaults that a careful operator would consider reasonable. Load rises. The
+shedder sees latency climb and begins rejecting requests, which is exactly
+its job, and latency recovers. The autoscaler, meanwhile, reads request rate
+at the service, sees it fall, concludes that demand has dropped, and scales
+the fleet down. Note that this requires an autoscaler configured on a
+request-rate (custom or external) metric; the Kubernetes default is CPU
+utilization \cite{k8shpa}, under which shed requests that never reach the pods
+have the same effect only if they would have consumed CPU. In our simulation
+(Section \ref{sec:results}) the outcome is not the growing oscillation often
+described but a stable trap: when the shedder trips below the autoscaler's
+target, the fleet ratchets down and sheds persistently.
+
+Every controller in this story behaved exactly as specified. The shedder shed
+under latency pressure. The autoscaler scaled to observed demand. Neither
+configuration is wrong. The fault is in the composition, and neither
+controller's telemetry contains enough information to attribute it, because
+each one sees only its own loop closing correctly.
+
+\subsection{Contributions}
+
+\begin{enumerate}
+\item \textbf{A taxonomy of three coupling channels} (Section
+\ref{sec:taxonomy}), distinguished by what is shared: the actuated variable,
+the measured signal, or the load distribution. The distinction matters
+because each channel calls for a different remedy, and for actuation and
+observation coupling the safe condition depends on quantities no single
+controller's configuration exposes.
+
+\item \textbf{A formal characterization of each channel} (Section
+\ref{sec:model}). Proposition \ref{prop:superpose} shows that controllers
+individually tuned inside the delay margin lose asymptotic stability once their
+margin fractions reach unity (with a common delay), and Corollary \ref{cor:local} shows the
+governing quantity is not observable at any single controller. Proposition
+\ref{prop:masking} shows that signal masking creates a neutral mode and,
+with threshold misordering, an under-provisioning trap; Corollary
+\ref{cor:detune} identifies which retunings escape it.
+Proposition \ref{prop:cascade} gives the subcriticality threshold for
+redistributive actions.
+
+\item \textbf{A configuration audit of deployed software} (Section
+\ref{sec:evidence}). We audit the configuration surfaces of the mechanisms
+operators actually run and record, for each, the signal it reads, the plant
+variable it actuates, and whether any coordination hook with its peers
+exists. We pair this with the incident record and with the practitioner
+literature that already names these interactions.
+
+\item \textbf{\sys{}, an arbitration layer} (Section \ref{sec:design}), with
+one design principle per coupling channel plus a time-scale separation rule,
+and an argument that each principle addresses its channel structurally
+rather than by tuning.
+
+\item \textbf{An evaluation protocol and pre-registered simulator results}
+(Sections \ref{sec:protocol}--\ref{sec:results}), including two
+pre-registered hypotheses that failed.
+\end{enumerate}
+
+We are explicit about scope. Our central evidence is the audit, the
+simulator checks of P1 and P3, and one pre-registered testbed experiment on
+the observation-coupling trap. The full arbiter is evaluated only in
+simulation, where it loses to a simple retuning; we report that as a
+negative result. No claim here concerns production systems.
+
+\section{Background}
+\label{sec:background}
+
+\subsection{The mechanisms}
+
+We use the following terms for the controllers a modern fleet runs. An
+\emph{autoscaler} adjusts replica count from a utilization or demand signal.
+A \emph{load shedder} or admission controller rejects a fraction of offered
+work, usually prioritized, when a congestion signal exceeds a threshold. A
+\emph{circuit breaker} or outlier detector removes an endpoint from the
+serving set when its error rate or latency exceeds a threshold. A
+\emph{concurrency limiter} caps in-flight requests. A \emph{rate limiter}
+caps request rate. A \emph{timeout policy} bounds per-call latency. A
+\emph{retry policy} reissues failed calls, typically bounded by a
+\emph{retry budget}. A \emph{router} distributes traffic across endpoints and
+performs failover.
+
+\subsection{Why the composition is not studied}
+
+Each mechanism has a substantial literature of its own. Autoscaling has
+been treated as a control problem \cite{lorido2014}. Admission control and
+overload protection have a long lineage in both networking and web serving
+\cite{welsh2003}. Adaptive concurrency limiting draws on congestion control
+\cite{netflixlimits}. Circuit breaking is folklore formalized into libraries.
+Each literature assumes its mechanism is the one closing the loop.
+
+The composition is discussed mainly in practitioner writing. The Google SRE
+book devotes a chapter to cascading failures and to the interaction between
+overload, retries, and capacity \cite{sre2016}. The Amazon Builders' Library
+treats timeouts, retries, and backoff as a system-level concern and warns
+about retry amplification \cite{buildersretry}. This literature is correct
+and widely read. What it does not provide is a model that says when
+composition is safe, which is what an operator needs in order to configure
+more than one mechanism at a time.
+
+\section{Three Coupling Channels}
+\label{sec:taxonomy}
+
+We distinguish coupling channels by what the controllers share.
+
+\subsection{Actuation coupling}
+
+Two controllers exhibit actuation coupling when their outputs move the same
+plant variable in the same direction.
+
+A concurrency limiter and a rate limiter both bound offered load. A shedder
+and a rate limiter both bound admitted work. An autoscaler and an outlier
+detector both change effective serving capacity, in opposite directions. In
+each case the plant receives the sum of the corrections while each
+controller was tuned as though it were applying the whole correction alone.
+
+Within a single proxy, Envoy already recognizes one such interaction: its
+retry budget is configured as a circuit-breaker threshold that bounds
+concurrent retries to a fraction of active requests \cite{envoycb}.
+
+\subsection{Observation coupling}
+
+Two controllers exhibit observation coupling when one controller's actuation
+lies upstream of the other's measurement point, so that the second
+controller's input is a function of the first controller's output.
+
+The autoscaler and shedder interaction of Section I is the canonical case.
+Shedding removes work before it reaches the point where request rate is
+measured, so the provisioning controller reads a demand signal that the
+protection controller is actively suppressing. The same structure appears
+whenever a protective mechanism is deployed at the edge of a measurement
+boundary, which is the normal place to deploy one.
+
+We expect observation coupling to be the least visible of the three. Actuation coupling at least produces a plant that responds
+too strongly, which an operator may recognize as overshoot. Observation
+coupling produces a controller that is behaving correctly on false data.
+
+\subsection{Topological coupling}
+
+Two controllers exhibit topological coupling when one controller's action
+redistributes load and thereby changes the state the other controller
+observes at a different endpoint.
+
+Ejection and failover routing are both redistributive. Removing an endpoint
+does not remove its traffic; it moves it. If survivors were already near
+saturation, the redistribution pushes them past the threshold that triggered
+the first ejection, and the process compounds. Retry amplification is a
+temporal variant: a timeout reduction converts slow successes into failures,
+failures into retries, and retries into additional offered load, so a
+tightening action increases the very quantity it was meant to reduce.
+
+\section{A Model of Overlapping Authority}
+\label{sec:model}
+
+We model the fleet around an operating point and treat each coupling channel
+in turn. The models are deliberately minimal. Their purpose is to identify
+the structural condition under which composition fails, not to predict
+trajectories.
+
+\subsection{Setup}
+
+Let $x(t)$ denote a scalar congestion state at an endpoint, for instance
+queue depth or latency deviation from setpoint, normalized so that $x=0$ is
+the operating point. Let controllers $i = 1, \ldots, m$ observe $x$ and
+apply corrections $u_i$. Each controller has an actuation delay $\tau_i > 0$
+comprising its measurement window, its decision interval, and the physical
+time for its action to take effect. For an autoscaler $\tau$ includes
+container start time and is often tens of seconds; for a shedder it is
+milliseconds.
+
+\subsection{Actuation coupling breaks the delay margin}
+
+Consider $m$ controllers with overlapping authority, each applying
+proportional feedback $u_i = -g_i x(t - \tau)$ with common delay $\tau$ and
+gain $g_i > 0$. Acting alone, controller $i$ closes the loop
+\[
+\dot{x}(t) = -g_i\, x(t - \tau) + d(t) ,
+\]
+which is asymptotically stable if and only if $g_i \tau < \pi/2$, the
+classical delay margin for first-order feedback with pure delay. Define
+controller $i$'s \emph{margin fraction}
+\[
+\rho_i \;=\; \frac{g_i \tau}{\pi/2} \;\in\; (0,1) .
+\]
+A controller tuned to consume half its delay margin has $\rho_i = 1/2$.
+
+\begin{proposition}[Gain superposition]
+\label{prop:superpose}
+If the $m$ controllers act concurrently on the same plant variable, the
+composed loop is
+\[
+\dot{x}(t) = -\Big(\textstyle\sum_{i=1}^{m} g_i\Big)\, x(t - \tau) + d(t) ,
+\]
+which is asymptotically stable if and only if $\sum_{i=1}^{m} \rho_i < 1$:
+marginally stable at equality and unstable above it. In particular,
+any two controllers each tuned to consume half or more of the delay margin
+compose to a loop that is not asymptotically stable, despite each being stable in isolation.
+\end{proposition}
+
+\begin{IEEEproof}[Proof sketch]
+Superposition of the corrections gives the stated composed loop, whose
+stability condition is $\left(\sum_i g_i\right)\tau < \pi/2$. Dividing by
+$\pi/2$ yields $\sum_i \rho_i < 1$.
+\end{IEEEproof}
+
+\begin{corollary}[Local tuning cannot prevent this]
+\label{cor:local}
+The margin fraction $\rho_i$ is determined by controller $i$'s own
+configuration and the plant. The stability condition depends on
+$\sum_j \rho_j$. No configuration surface enumerated in Section
+\ref{sec:evidence} exposes $\rho_j$ for $j \neq i$, nor any proxy for it (Table \ref{tab:audit}).
+The condition is therefore not evaluable, let alone enforceable, at any
+individual controller.
+\end{corollary}
+
+Corollary \ref{cor:local} is the practical heart of the actuation-coupling
+argument. The failure is not that operators tune badly. It is that the
+quantity governing stability is not exposed anywhere an operator could read
+it. Adding a second well-tuned controller to a well-tuned system can be
+unsafe, and nothing in the audited tooling says so.
+
+Unequal delays complicate the algebra without changing the conclusion. When
+$\tau_i$ differ, the composed characteristic equation
+$s + \sum_i g_i e^{-s\tau_i} = 0$ replaces the single-delay form. Numerically,
+with $\rho_i$ defined on each controller's own delay, $\sum_i\rho_i<1$ remains
+sufficient but becomes conservative: instability onset occurred at
+$\sum\rho = 1.20$, $1.79$, and $2.00$ for equal-$\rho$ pairs with delay ratios
+1:2, 1:10, and 1:100 (Section \ref{sec:results}). Widely separated delays,
+such as shedder and autoscaler, are therefore the \emph{least} prone to this
+channel; it bites hardest between mechanisms of similar speed.
+
+\subsection{Observation coupling induces positive feedback}
+
+Now consider two controllers with different roles. A fast controller $F$
+reduces offered load with output $u_F \geq 0$, and a slow controller $S$
+provisions capacity from a measured demand signal. Crucially, $F$ acts
+upstream of $S$'s measurement point, so $S$ observes
+\[
+\hat{\lambda} \;=\; \lambda - u_F
+\]
+rather than the true offered load $\lambda$. Let capacity be
+$\mu = \mu_0 + u_S$ with $u_S = g_S(\hat{\lambda} - \mu)$, let
+$u_F = g_F\, x$ with $g_F > 0$, and let congestion respond to capacity with
+sensitivity $\kappa = -\partial x / \partial \mu > 0$.
+
+\begin{proposition}[Signal masking]
+\label{prop:masking}
+The path $x \to u_F \to \hat{\lambda} \to u_S \to \mu \to x$ has positive sign.
+Including the direct path by which $u_F$ itself relieves congestion, the
+linearization $\dot x = -g_F x - \delta\mu$,
+$\dot{\delta\mu} = g_S(-g_F x - \delta\mu)$ has eigenvalues $0$ and
+$-(g_F+g_S)$: the masked operating point is neutrally stable, not unstable.
+Capacity is not restored toward true demand; any shed level consistent with
+$\delta\mu = \delta\lambda - g_F x$ is an equilibrium.
+\end{proposition}
+
+\begin{IEEEproof}[Proof sketch]
+The system matrix $\begin{pmatrix}-g_F & -1\\ -g_Sg_F & -g_S\end{pmatrix}$ has
+determinant $0$ and trace $-(g_F+g_S)$.
+\end{IEEEproof}
+
+\begin{corollary}[Threshold-ordering trap]
+\label{cor:detune}
+If the load reducer trips at a utilization $u_F^\ast$ below the provisioner's
+target $u_S^\ast$, admitted load is held near $u_F^\ast\mu < u_S^\ast\mu$,
+so the provisioner reads demand below its target and never scales up (and may
+scale down). Changing $g_F$, $g_S$, or smoothing windows does not alter this
+fixed point. It is escaped either structurally, by severing the dependence of
+$\hat{\lambda}$ on $u_F$ (P2), or by retuning the thresholds so that
+$u_S^\ast < u_F^\ast$.
+\end{corollary}
+
+In simulation (Section \ref{sec:results}) a shedder tripping at 60\%
+utilization under a 70\% autoscaler target held the fleet at 6--8 replicas
+where 18 were needed, shedding 64--70\% of load, across every combination of
+shedder gain and stabilization window we tried; lowering the autoscaler target to 55\%
+removed the trap entirely. The trap is thus a configuration-ordering hazard
+that no single controller's surface flags, but it is not immune to retuning.
+
+\subsection{Topological coupling has a branching threshold}
+
+Let an endpoint be ejected and its load redistributed over the surviving
+members of its pool. Let $\Gamma$ denote the expected number of additional
+endpoints driven past the ejection threshold by the redistribution from one
+ejection, given the current load margin distribution across the pool.
+
+\begin{proposition}[Cascade subcriticality]
+\label{prop:cascade}
+Treating ejections as a branching process with mean offspring $\Gamma$, the
+ejection cascade terminates almost surely if and only if $\Gamma < 1$. When
+$\Gamma > 1$ the cascade reaches the pool's live-endpoint floor with positive
+probability.
+\end{proposition}
+
+The practical content is that $\Gamma$ is computable before acting, from the
+topology and the current per-endpoint headroom, which is what makes
+topological coupling the most tractable of the three channels. Existing
+guards (Envoy's \texttt{max\_ejection\_percent} and panic threshold
+\cite{envoyoutlier,envoypanic}, Istio's \texttt{minHealthPercent}
+\cite{istiodr}) bound ejection by fixed fractions rather than by $\Gamma$.
+
+\section{Does the Premise Hold in Practice?}
+\label{sec:evidence}
+
+The model predicts trouble under two conditions: overlapping authority, and
+independent configuration with no shared signal. This section tests
+whether both conditions hold in widely deployed software. We use three
+kinds of public evidence and deliberately avoid proprietary incident data,
+so that every claim here is checkable by a reader.
+
+\subsection{Configuration surface audit}
+
+Method: for each mechanism, read the upstream documentation and
+configuration reference, and record four fields. The signal the mechanism
+reads. The plant variable it actuates. The tuning parameters it exposes.
+Whether any documented hook allows it to observe or defer to a peer
+mechanism. Table \ref{tab:audit} gives the schema and the mechanisms in
+scope. We audit Kubernetes horizontal pod autoscaling and cluster
+autoscaling, Envoy outlier detection, circuit breakers, adaptive concurrency,
+local and global rate limiting, and retry budgets, Istio destination-rule
+outlier detection, and Linkerd retry budgets.
+
+\begin{table*}[t]
+\caption{Configuration audit (Envoy v1.39.3, Istio 1.31, Linkerd edge-26.10.1, Kubernetes docs as of 2026-10-11). Per-cell source URLs in \texttt{audit/mechanisms.csv}. $^\dagger$Cluster autoscaler row not re-verified.}
+\label{tab:audit}
+\centering
+\footnotesize
+\begin{tabular}{@{}lp{4.2cm}lp{5.2cm}@{}}
+\toprule
+Mechanism & Reads & Actuates & Coordination hook \\
+\midrule
+K8s HPA & CPU/mem (default); custom/external metrics & replicas & none (accepts any metric) \\
+K8s cluster autoscaler$^\dagger$ & pending pods & nodes & none \\
+Envoy outlier detection & 5xx, gateway, local-origin errors & serving set & partial: \texttt{max\_ejection\_percent}; panic threshold \\
+Envoy circuit breakers & in-flight counts & admitted load & hosts retry budget \\
+Envoy adaptive concurrency & latency vs.\ minRTT & concurrency & none \\
+Envoy local rate limit & request count & admitted load & none \\
+Envoy retry budget & active+pending requests & retries & yes: bounded to \% of active requests \\
+Istio outlier detection & 5xx, gateway errors & serving set & yes: \texttt{minHealthPercent} gate \\
+Linkerd retries & response status & retries & none (legacy \texttt{retryRatio}) \\
+Linkerd circuit breaking & failure accrual & serving set & none \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\textbf{Findings.} (i) Several groups actuate one variable: three
+mechanisms move the serving set, three bound admitted load, two add retries,
+and the autoscaler and ejection move capacity in opposite directions. (ii) We
+found \emph{no} documented hook linking autoscaling to any protection
+mechanism. (iii) Contrary to our prior expectation of a uniformly empty
+column, there are narrow intra-proxy hooks: Envoy's retry budget is a
+circuit-breaker threshold \cite{envoycb}; Envoy re-admits ejected hosts in
+panic mode and caps ejections \cite{envoyoutlier,envoypanic}; Istio disables
+outlier detection when healthy hosts fall below \texttt{minHealthPercent}
+\cite{istiodr}. (iv) Envoy's adaptive concurrency rejects with 503, a
+``gateway failure'' that can feed consecutive-gateway-failure ejection
+\cite{envoyoutlier}, an observation-coupling path inside one proxy. Our claim
+is therefore narrowed to: no audited surface coordinates provisioning with
+protection.
+
+\subsection{Incident catalogue}
+
+Public postmortems can show that these interactions occur outside
+simulation. We use them for existence and mechanism, not for prevalence.
+This is a deliberate methodological limit. Vendors publish selectively, and
+most writeups lack the detail needed to diagnose a controller interaction,
+so any rate computed over published incidents would be an artifact of
+disclosure policy rather than a property of systems.
+
+Method: rather than inherit a third-party curated list, whose maintenance we
+cannot depend on, we index primary sources directly. We search vendor
+incident archives from major cloud and infrastructure providers, apply stated
+inclusion criteria, and code each admitted incident against the three
+channels of Section \ref{sec:taxonomy}. Both authors will code independently and
+report agreement. This catalogue is not yet compiled. The resulting index, with inclusion criteria and per
+incident coding, is released as an artifact so that the catalogue does not
+inherit our own maintenance either.
+
+\subsection{Practitioner literature}
+
+Independent of any dataset, the interactions we model are already named in
+the canonical operational literature. The Google SRE treatment of cascading
+failures describes overload propagation and the role of retries in
+amplifying it \cite{sre2016}. The Amazon Builders' Library treats retry
+amplification and load shedding as system-level concerns rather than local
+ones \cite{buildersretry,buildersshed}. We cite this literature as evidence
+that the phenomena are recognized, and position our contribution as supplying
+the model and the remedy that it does not.
+
+\section{\sys{}: Arbitration by Construction}
+\label{sec:design}
+
+\sys{} is an arbitration layer that sits between the controllers and the
+plant. Controllers become advisors: they compute desired corrections, and
+\sys{} decides what is actually applied. The name reflects the intent, which
+is controllers playing from one score rather than each at full volume.
+
+The design has one principle per coupling channel, plus a cross-cutting
+scheduling rule.
+
+\subsection{P1: bounded shared authority}
+
+\emph{Addresses actuation coupling.}
+
+\sys{} computes a single severity estimate $s \in [0,1]$ from the plant
+state, once, and derives a total corrective authority budget $B(s)$. Each
+actuator receives an allocation $\alpha_i(s)$ subject to
+$\sum_i \alpha_i(s) \leq B(s)$. Allocations are assigned by actuation cost
+and time constant, not by letting each controller take what it wants.
+
+The structural property is that total loop gain is bounded by $B$ regardless
+of how many controllers are enabled. Enabling an additional controller
+redistributes authority rather than adding to it, so the margin-fraction sum
+of Proposition \ref{prop:superpose} is bounded by construction and
+Corollary \ref{cor:local} no longer bites: the governing quantity is
+computed in one place, by the component that owns it.
+
+This is control allocation in the aerospace sense \cite{durham1993}, applied
+to a plant whose actuators happen to be named autoscaler and shedder.
+
+\subsection{P2: counterfactual signal reconstruction}
+
+\emph{Addresses observation coupling.}
+
+Each controller is presented with the signal it would observe if no other
+controller were acting. Concretely, the provisioning controller reads
+$\lambda = \hat{\lambda} + u_F$, the sum of admitted and shed load, rather
+than admitted load alone. Generalizing, \sys{} maintains for each exposed
+signal an accounting of the corrections applied upstream of its measurement
+point, and serves the reconstructed pre-intervention value.
+
+By Corollary \ref{cor:detune} this removes the trap structurally, independent
+of threshold ordering; threshold retuning is the alternative. Shedders and
+rate limiters typically count rejected work in their own telemetry, so we
+expect the quantity to be available, but we have not measured the integration
+cost.
+
+\subsection{P3: topology-gated action admission}
+
+\emph{Addresses topological coupling.}
+
+Before applying any redistributive action, \sys{} computes the projected
+cascade gain $\Gamma$ of Proposition \ref{prop:cascade} from the current
+topology and per-endpoint headroom, and admits the action only if the
+post-action $\Gamma$ remains below a subcriticality threshold. When the full
+requested action set would exceed it, the set is scaled back rather than
+dropped, preserving as much protective value as the threshold allows.
+
+\subsection{P4: time-scale separation}
+
+\emph{Cross-cutting.}
+
+Even under a shared budget, two actuators can chase the same disturbance
+component. \sys{} splits the severity signal by frequency band and assigns
+bands to actuators by time constant: the fast band drives shedding and
+concurrency, the slow band drives replica provisioning. An actuator never
+receives authority over a disturbance component faster than its own
+actuation delay, which prevents a slow controller from reacting to transients
+it cannot affect in time.
+
+\section{Implementation}
+\label{sec:impl}
+
+We target two settings.
+
+The first is a sidecar and controller pair for Kubernetes and Envoy. The
+severity estimator and allocator run as a cluster-scoped controller. Existing
+mechanisms are placed in advisory mode where their configuration permits it,
+and where it does not, they are bounded externally by the allocator setting
+their limits each interval. Signal reconstruction is implemented by exposing
+a reconstructed demand metric that the autoscaler consumes in place of the
+raw one, which requires no change to the autoscaler itself.
+
+The second is a reference implementation inside a stdlib-Python fleet
+simulator (released with this paper), which is the only implementation
+evaluated here. The Kubernetes/Envoy implementation described above is
+planned, not built.
+
+A deliberate design constraint is that \sys{} requires no modification to the
+controllers it arbitrates. Each of the three principles is implementable by
+bounding a controller's output, substituting its input, or gating its action,
+all of which are available from outside.
+
+\section{Evaluation Protocol}
+\label{sec:protocol}
+
+This section states the full campaign. Section \ref{sec:results} reports the
+simulator portion; the testbed portion is pending.
+
+\subsection{Testbed}
+
+An open microservice benchmark on Kubernetes with Envoy or Istio providing
+outlier detection, retries, and concurrency limiting, and horizontal pod
+autoscaling providing capacity. We favor DeathStarBench as the primary
+application for its established use in the systems community
+\cite{gan2019}, with a lighter alternative retained for iteration speed.
+Workloads are driven by an open-loop generator, with arrival patterns taken
+from public cluster traces to obtain realistic non-stationarity.
+
+The first testbed experiment (Section \ref{sec:testbed}) targets the
+observation-coupling trap of Corollary \ref{cor:detune}.
+
+\subsection{Simulator}
+
+A fleet simulator supplies controlled ablation across many scenarios and at
+scales the testbed cannot reach. It is the instrument for isolating
+mechanism, not for establishing that the phenomenon is real; the testbed does
+that.
+
+\subsection{Baselines}
+
+\textbf{B1, independent defaults.} Every mechanism enabled with vendor
+default configuration. This is not a strawman. It is what a team gets by
+following each mechanism's own documentation.
+
+\textbf{B2, independently retuned.} A fixed, pre-registered retuning without
+any shared signal: load-reducer gains scaled by $0.4$ and the autoscaler
+utilization target lowered from $0.70$ to $0.55$. In the testbed the same
+rule will be applied, chosen before measurement. This baseline tests
+whether the problem is a tuning problem.
+
+\textbf{B3, strict precedence arbiter.} A naive arbitration scheme in which a
+fixed priority order determines which controller acts when several wish to.
+This isolates the value of proportional allocation over simple mutual
+exclusion.
+
+\textbf{B4, \sys{}.}
+
+\subsection{Metrics and research questions}
+
+Metrics: oscillation amplitude and period after a step disturbance, settling
+time, objective attainment, capacity cost, cascade incidence, goodput under
+a retry storm, and the rate of simultaneous tightening actions on one
+endpoint.
+
+\textbf{RQ1.} Does each coupling channel reproduce on unmodified deployed
+software under reasonable configuration?
+
+\textbf{RQ2.} Does retuning remove instability from actuation coupling but not
+the observation-coupling deficit? This was our sharpest pre-registered prediction;
+in simulation it failed (Section \ref{sec:results}).
+
+\textbf{RQ3.} Does \sys{} restore stability without a cost or attainment
+penalty relative to the best-performing baseline?
+
+\textbf{RQ4.} What does each principle contribute? Measured by removing P1
+through P4 individually.
+
+\textbf{RQ5.} How does arbitration behave as the number of enabled mechanisms
+grows? Proposition \ref{prop:superpose} predicts the independent baselines
+degrade with $m$ while \sys{} does not.
+
+\section{Simulator Results}
+\label{sec:results}
+
+All numbers come from the released simulator (deterministic; 20 seeds for
+fleet experiments, 30 for pool experiments; 95\% normal-approximation CIs,
+paired by seed). Hypotheses and thresholds were committed in
+\texttt{PREREG.md} before the runs. These are model checks, not evidence about
+deployed systems.
+
+\textbf{Fleet model.} An autoscaler (15\,s period, 30\,s start delay, 300\,s
+downscale stabilization, 70\% target) and two integral load reducers (shedder
+and concurrency limiter, 3\,s measurement delay, each tuned alone to
+$\rho=0.6$) both trip at 60\% utilization. That ordering is a modeling
+assumption chosen to exercise Corollary \ref{cor:detune}; we have not shown
+it is common. Load steps from 80 to 120 req/s with seeded bursts and noise.
+Attainment is the fraction of offered load admitted while queue depth stays
+within an SLO bound.
+
+\begin{table}[t]
+\caption{Fleet simulator, 20 seeds, mean [95\% CI].}
+\label{tab:results}
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Config & Attain. & Cost (repl.) & Osc. \\
+\midrule
+B1 defaults & .532 [.528,.536] & 11.4 & .220 \\
+B2 retuned & .993 [.992,.994] & 28.0 & .029 \\
+B3 precedence & .572 [.570,.575] & 12.0 & .073 \\
+B4 \sys{} & .916 [.914,.917] & 19.2 & .095 \\
+\;\;\textit{less} P1 & .911 [.910,.912] & 19.2 & .116 \\
+\;\;\textit{less} P2 & .348 [.346,.350] & 7.3 & .040 \\
+\;\;\textit{less} P4 & .956 [.954,.958] & 22.8 & .072 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{RQ3 (failed).} \sys{} does not match the best baseline: B2 attains
+0.993 vs.\ 0.916 ($-7.7$\,pp, CI $[-7.9,-7.5]$), though at 1.46$\times$ the
+capacity cost. \sys{} still sheds because P2 provisions to the 70\% target while both
+reducers trip at 60\%; arbitration does not correct threshold ordering.
+
+\textbf{RQ2 (failed).} Retuning both suppresses oscillation ($-0.19$ vs.\ B1)
+and escapes the observation-coupling trap. The prediction that
+retuning cannot fix observation coupling is not supported.
+
+\textbf{RQ4.} Removing P2 collapses attainment to 0.348; removing P1 raises
+oscillation by 0.022 [0.021,0.023]; removing P4 adds 9.05 replica changes but
+\emph{raises} attainment to 0.956, so P4 trades responsiveness for stability.
+P3 is not exercised in the fleet model.
+
+\textbf{P1 in isolation.} With $m=1..5$ controllers each at $\rho=0.6$ on a
+common delay, independent composition grows without bound for every $m\ge2$;
+the shared budget ($\sum\rho\le0.5$) settles in 5.77\,s for every $m$, faster
+than the single unconstrained controller (7.61\,s).
+
+\textbf{P3.} In a 50-host pool with one faulty host and per-host utilization
+spread $\pm0.1$ around a mean $u$, no policy differs for $u\le0.85$. At
+$u=0.9$ and $0.95$ ungated ejection collapses the pool; goodput is 0.999 and
+0.986 under the $\Gamma$ gate vs.\ 0.973 and 0.925 with a 10\%
+ejection cap and 0.969 and 0.955 with a 50\% \texttt{minHealthPercent}
+gate. Predicted $\Gamma\ge1$ matched realized cascades in 180/180 ungated runs,
+but outcomes were bimodal, so this is weak evidence of predictive power. The
+pool model lets an overloaded host serve at capacity, which favors
+withholding ejection.
+
+\section{Testbed: the Threshold-Ordering Trap}
+\label{sec:testbed}
+
+\textbf{Setup.} Single-node k3s v1.31.4 on one 8-vCPU VM. A Python service
+has a fixed capacity of about 50\,req/s per pod (4 workers, 80\,ms service time). Each pod
+carries an Envoy v1.31.4 sidecar whose \texttt{local\_ratelimit} filter (token
+bucket refilled at $R$\,req/s per pod, excess answered 429) is the
+per-pod shedder. An edge Envoy round-robins over pods. The autoscaling/v2 HPA
+scales on per-pod 2xx rate at the sidecar, served by Prometheus and
+prometheus-adapter, with a target of 35\,req/s (0.7 of capacity), 2--8 replicas,
+and the default stabilization. Open-loop load from vegeta: 50\,req/s for 60\,s, then
+160\,req/s for 480\,s. TRAP sets $R=30$ (trips at 0.6, below target);
+REVERSE sets $R=40$ (0.8, above target). Thresholds T1--T3 were committed
+before any run (\texttt{PREREG.md} v2). Metrics cover the final 240\,s.
+
+%%TESTBED_TABLE%%
+
+\textbf{Caveats.} A per-pod token bucket stands in for a capacity-relative
+shedder; Envoy's adaptive concurrency was not tested. The box kernel lacks
+the iptables \texttt{statistic} match, so kube-proxy could not balance a
+multi-endpoint Service; the edge Envoy replaces it. One node, one application,
+and %%NTRIALS%% trials per arm.
+
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Control allocation.} The assignment of corrective effort among
+redundant actuators is well developed in aerospace control
+\cite{durham1993,johansen2013}. Our contribution is not to that theory but
+to the observation that service fleets have the same actuator redundancy and
+none of the allocation discipline, and to the two coupling channels,
+observational and topological, that the aerospace formulation does not
+address because aircraft control surfaces do not corrupt each other's
+sensors or redistribute load across a graph.
+
+\textbf{Autoscaling.} Autoscaling has been studied extensively as a control
+and prediction problem \cite{lorido2014}. This work assumes the autoscaler
+is the controller closing the loop. We study what happens when it is not the
+only one, and Proposition \ref{prop:masking} concerns the validity of the
+demand signal such work takes as given.
+
+\textbf{Overload control and admission.} Overload protection for servers has
+a long lineage \cite{welsh2003}, and adaptive concurrency limiting imports
+congestion-control ideas into the application layer
+\cite{netflixlimits}. Again the composition is out of scope in that
+literature.
+
+\textbf{Cascading failure.} Cascade dynamics have been modeled in power grids
+and in networks, and the branching-process threshold of Proposition
+\ref{prop:cascade} is standard there. The contribution here is to treat
+cascade risk as an admission gate on a controller's action rather than as a
+post-hoc analysis; Istio's \texttt{minHealthPercent} is a fixed-fraction precursor.
+
+\textbf{Practitioner literature.} The operational canon
+\cite{sre2016,buildersretry,buildersshed} names these interactions and
+prescribes remedies per mechanism. We supply the composition model and an
+arbitration layer, which it does not.
+
+\section{Threats to Validity}
+\label{sec:threats}
+
+\textbf{Model fidelity.} The models of Section \ref{sec:model} are linearized
+and scalar, and all results in Section \ref{sec:results} come from a simple fluid simulator. They are intended to identify structural conditions, not to
+predict trajectories, and the testbed is the check on whether the conditions
+they identify actually govern real systems.
+
+\textbf{Configuration realism.} A reviewer may object that a competent
+operator would not deploy the configurations in baseline B1. The audit of
+Section \ref{sec:evidence} is partly a response: we report what the defaults
+are and what the documentation recommends, so that the baseline is defensible
+by citation rather than by assertion.
+
+\textbf{Benchmark representativeness.} Findings on a benchmark application
+may not transfer to production topologies, which are larger and more
+irregular. The simulator partially addresses scale and the audit addresses
+mechanism coverage, but neither substitutes for testbed or production validation, which
+we do not yet have.
+
+\textbf{Incident catalogue bias.} Addressed directly in Section
+\ref{sec:evidence}. We make no prevalence claim, and the catalogue supports
+existence and mechanism only.
+
+\section{Conclusion}
+
+Service fleets run many reliability controllers over one plant and allocate
+authority among them not at all. We identified three channels through which
+those controllers interfere, and showed that each has a distinct structural
+signature: summed gains that break a delay margin no controller can observe,
+a masked signal that creates an under-provisioning trap when thresholds are
+misordered, and a redistribution process with a branching threshold. We presented
+an arbitration layer with one principle per channel, designed to work without
+modifying the controllers it governs.
+
+In simulation, the shared budget and topology gate did what the model
+predicts, but the full arbiter lost to a simple retuning on attainment. The
+audit found no surface coordinating provisioning with protection, alongside
+narrow intra-proxy guards. Whether these effects appear on real software is
+the question our pending testbed campaign is designed to answer.
+
+
+
+\begin{thebibliography}{99}
+\bibitem{durham1993} W. C. Durham, ``Constrained control allocation,'' \emph{Journal of Guidance, Control, and Dynamics}, vol. 16, no. 4, pp. 717--725, 1993.
+\bibitem{johansen2013} T. A. Johansen and T. I. Fossen, ``Control allocation: A survey,'' \emph{Automatica}, vol. 49, no. 5, pp. 1087--1103, 2013.
+\bibitem{lorido2014} T. Lorido-Botr\'an, J. Miguel-Alonso, and J. A. Lozano, ``A review of auto-scaling techniques for elastic applications in cloud environments,'' \emph{Journal of Grid Computing}, vol. 12, no. 4, pp. 559--592, 2014.
+\bibitem{welsh2003} M. Welsh and D. Culler, ``Adaptive overload control for busy internet servers,'' in \emph{USENIX Symposium on Internet Technologies and Systems (USITS)}, 2003.
+\bibitem{netflixlimits} Netflix Technology Blog, ``Performance under load: Adaptive concurrency limits,'' 2018. [Online]. Available: \url{https://netflixtechblog.medium.com/performance-under-load-3e6fa9a60581}
+\bibitem{sre2016} B. Beyer, C. Jones, J. Petoff, and N. R. Murphy, Eds., \emph{Site Reliability Engineering: How Google Runs Production Systems}. O'Reilly Media, 2016, ch. 22, ``Addressing Cascading Failures.''
+\bibitem{buildersretry} M. Brooker, ``Timeouts, retries, and backoff with jitter,'' \emph{Amazon Builders' Library}. [Online]. Available: \url{https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/}
+\bibitem{buildersshed} D. Yanacek, ``Using load shedding to avoid overload,'' \emph{Amazon Builders' Library}. [Online]. Available: \url{https://aws.amazon.com/builders-library/using-load-shedding-to-avoid-overload/}
+\bibitem{gan2019} Y. Gan et al., ``An open-source benchmark suite for microservices and their hardware-software implications for cloud and edge systems,'' in \emph{ASPLOS}, 2019.
+\bibitem{k8shpa} Kubernetes, ``Horizontal pod autoscaling.'' [Online]. Available: \url{https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/}, accessed Oct.\ 2026.
+\bibitem{envoyoutlier} Envoy v1.39.3, ``Outlier detection.'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/intro/arch_overview/upstream/outlier}
+\bibitem{envoypanic} Envoy v1.39.3, ``Panic threshold.'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/intro/arch_overview/upstream/load_balancing/panic_threshold}
+\bibitem{envoycb} Envoy v1.39.3, ``Circuit breakers (config.cluster.v3).'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/api-v3/config/cluster/v3/circuit_breaker.proto}
+\bibitem{istiodr} Istio 1.31, ``Destination rule.'' [Online]. Available: \url{https://istio.io/v1.31/docs/reference/config/networking/destination-rule/}
+\end{thebibliography}
+
+\end{document}

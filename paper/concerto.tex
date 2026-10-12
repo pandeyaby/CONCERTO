@@ -72,7 +72,7 @@ ejection, load balancing, and retries.
 
 We report the model, the audit, pre-registered simulator experiments,
 and a first testbed experiment on unmodified Kubernetes, Envoy, and
-prometheus-adapter (Section \ref{sec:testbed}): %%TESTBED_ABS%%
+prometheus-adapter (Section \ref{sec:testbed}): with a per-pod shedder tripping below the autoscaler's target, the fleet stayed at its replica floor and served 38\% of load, vs.\ 100\% with the thresholds reversed (1 TRAP, 2 REVERSE trials).
 In simulation, the shared authority budget removes
 gain-superposition instability and topology gating outperforms
 ejection caps at high utilization, but the full arbiter does \emph{not} beat an
@@ -761,13 +761,34 @@ and the default stabilization. Open-loop load from vegeta: 50\,req/s for 60\,s, 
 REVERSE sets $R=40$ (0.8, above target). Thresholds T1--T3 were committed
 before any run (\texttt{PREREG.md} v2). Metrics cover the final 240\,s.
 
-%%TESTBED_TABLE%%
+\begin{table}[t]
+\caption{Testbed RQ1, final 240\,s of each trial. Attainment is the 2xx fraction of offered load; 5 replicas are needed at 160\,req/s.}
+\label{tab:testbed}
+\centering\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Trial & Attain. & 429 frac. & Final repl. & Mean repl. \\
+\midrule
+TRAP 1 & 0.375 & 0.625 & 2 & 2.00 \\
+REVERSE 1 & 1.000 & 0.000 & 5 & 5.00 \\
+REVERSE 2 & 1.000 & 0.000 & 5 & 5.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Result.} Every TRAP trial held at the 2-replica floor while
+offered load was 3.2$\times$ the starting load; the HPA read 30\,req/s per pod
+against its 35\,req/s target and never scaled. Mean attainment was 0.375
+(TRAP) vs.\ 1.000 (REVERSE), a gap of 0.625.
+Interim verdicts (pre-registration requires 3 valid trials per arm; 1 TRAP and 2 REVERSE so far): T1 PASS, T2 PASS, T3 PASS.
+The trap therefore reproduces on unmodified, documented components, and, as
+in simulation, reordering the thresholds escapes it.
 
 \textbf{Caveats.} A per-pod token bucket stands in for a capacity-relative
 shedder; Envoy's adaptive concurrency was not tested. The box kernel lacks
 the iptables \texttt{statistic} match, so kube-proxy could not balance a
 multi-endpoint Service; the edge Envoy replaces it. One node, one application,
-and %%NTRIALS%% trials per arm.
+and 1/2 (TRAP/REVERSE) trials per arm.
 
 \section{Related Work}
 \label{sec:related}

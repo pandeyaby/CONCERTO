@@ -1,0 +1,504 @@
+{
+ "version": "0.0.1",
+ "prop1": [
+  {
+   "case": "single",
+   "gains": [
+    1.0
+   ],
+   "taus": [
+    1.0
+   ],
+   "k_crit": 1.5669,
+   "sum_rho_at_instability": 0.998
+  },
+  {
+   "case": "2 equal gains, equal delays",
+   "gains": [
+    1.0,
+    1.0
+   ],
+   "taus": [
+    1.0,
+    1.0
+   ],
+   "k_crit": 0.7834,
+   "sum_rho_at_instability": 0.998
+  },
+  {
+   "case": "3 equal, equal delays",
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "taus": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "k_crit": 0.5223,
+   "sum_rho_at_instability": 0.998
+  },
+  {
+   "case": "2 equal rho, delays 1:2",
+   "gains": [
+    1.0,
+    0.5
+   ],
+   "taus": [
+    1.0,
+    2.0
+   ],
+   "k_crit": 0.9384,
+   "sum_rho_at_instability": 1.195
+  },
+  {
+   "case": "2 equal rho, delays 1:10",
+   "gains": [
+    1.0,
+    0.1
+   ],
+   "taus": [
+    1.0,
+    10.0
+   ],
+   "k_crit": 1.4017,
+   "sum_rho_at_instability": 1.785
+  },
+  {
+   "case": "2 equal rho, delays 1:100 (shedder vs autoscaler)",
+   "gains": [
+    1.0,
+    0.01
+   ],
+   "taus": [
+    1.0,
+    100.0
+   ],
+   "k_crit": 1.5683,
+   "sum_rho_at_instability": 1.997
+  },
+  {
+   "case": "2 equal gains, delays 1:10",
+   "gains": [
+    1.0,
+    1.0
+   ],
+   "taus": [
+    1.0,
+    10.0
+   ],
+   "k_crit": 0.5074,
+   "sum_rho_at_instability": 3.553
+  }
+ ],
+ "prop2": {
+  "linear_eigs": {
+   "gF=0.5,gS=0.01": [
+    "0.0",
+    "-0.51"
+   ],
+   "gF=0.5,gS=0.1": [
+    "0.0",
+    "-0.6"
+   ],
+   "gF=2.0,gS=0.01": [
+    "0.0",
+    "-2.01"
+   ],
+   "gF=2.0,gS=0.1": [
+    "0.0",
+    "-2.1"
+   ]
+  },
+  "step": [
+   {
+    "mode": "masked",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": null,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.0,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   },
+   {
+    "mode": "p2",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": null,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.0,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   }
+  ],
+  "noisy_step": [
+   {
+    "mode": "masked",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": null,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.0,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   },
+   {
+    "mode": "p2",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": null,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.0,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   }
+  ],
+  "shed_below_target": [
+   {
+    "mode": "masked",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": 0.6,
+    "target": 0.7,
+    "final_replicas": 7,
+    "replicas_min_max_2nd_half": [
+     7,
+     7
+    ],
+    "mean_shed_2nd_half": 0.65,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   },
+   {
+    "mode": "p2",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": 0.6,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.1,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   },
+   {
+    "mode": "masked",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": 0.69,
+    "target": 0.7,
+    "final_replicas": 12,
+    "replicas_min_max_2nd_half": [
+     12,
+     12
+    ],
+    "mean_shed_2nd_half": 0.31,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   },
+   {
+    "mode": "p2",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": 0.69,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.0,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   },
+   {
+    "mode": "masked",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": 0.75,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.0,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   },
+   {
+    "mode": "p2",
+    "gF": 2.0,
+    "W": 300.0,
+    "shed_util": 0.75,
+    "target": 0.7,
+    "final_replicas": 18,
+    "replicas_min_max_2nd_half": [
+     18,
+     18
+    ],
+    "mean_shed_2nd_half": 0.0,
+    "mean_queue_2nd_half": 0.0,
+    "needed_replicas_for_lam1": 18
+   }
+  ]
+ },
+ "detune": [
+  {
+   "mode": "masked",
+   "gF": 0.25,
+   "W": 0.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    7
+   ],
+   "mean_shed_2nd_half": 0.65,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 0.25,
+   "W": 60.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    7
+   ],
+   "mean_shed_2nd_half": 0.65,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 0.25,
+   "W": 300.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    7
+   ],
+   "mean_shed_2nd_half": 0.65,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 0.25,
+   "W": 900.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    8
+   ],
+   "mean_shed_2nd_half": 0.6408,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 1.0,
+   "W": 0.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    7
+   ],
+   "mean_shed_2nd_half": 0.65,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 1.0,
+   "W": 60.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    7
+   ],
+   "mean_shed_2nd_half": 0.65,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 1.0,
+   "W": 300.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    7
+   ],
+   "mean_shed_2nd_half": 0.65,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 1.0,
+   "W": 900.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    8
+   ],
+   "mean_shed_2nd_half": 0.6494,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 4.0,
+   "W": 0.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 6,
+   "replicas_min_max_2nd_half": [
+    6,
+    6
+   ],
+   "mean_shed_2nd_half": 0.7,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 4.0,
+   "W": 60.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 6,
+   "replicas_min_max_2nd_half": [
+    6,
+    6
+   ],
+   "mean_shed_2nd_half": 0.7,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 4.0,
+   "W": 300.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    7
+   ],
+   "mean_shed_2nd_half": 0.65,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 4.0,
+   "W": 900.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 7,
+   "replicas_min_max_2nd_half": [
+    7,
+    8
+   ],
+   "mean_shed_2nd_half": 0.6494,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  },
+  {
+   "mode": "masked",
+   "gF": 2.0,
+   "W": 300.0,
+   "shed_util": 0.6,
+   "target": 0.5,
+   "final_replicas": 24,
+   "replicas_min_max_2nd_half": [
+    24,
+    24
+   ],
+   "mean_shed_2nd_half": 0.0,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 24
+  },
+  {
+   "mode": "masked",
+   "gF": 2.0,
+   "W": 300.0,
+   "shed_util": 0.6,
+   "target": 0.55,
+   "final_replicas": 22,
+   "replicas_min_max_2nd_half": [
+    22,
+    22
+   ],
+   "mean_shed_2nd_half": 0.0,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 22
+  },
+  {
+   "mode": "p2",
+   "gF": 2.0,
+   "W": 300.0,
+   "shed_util": 0.6,
+   "target": 0.7,
+   "final_replicas": 18,
+   "replicas_min_max_2nd_half": [
+    18,
+    18
+   ],
+   "mean_shed_2nd_half": 0.1,
+   "mean_queue_2nd_half": 0.0,
+   "needed_replicas_for_lam1": 18
+  }
+ ],
+ "does_not_claim": [
+  "behavior of any real deployed system",
+  "that the models are faithful to Kubernetes/Envoy",
+  "anything about CONCERTO's performance (not implemented yet)"
+ ]
+}

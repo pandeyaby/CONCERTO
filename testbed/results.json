@@ -19,6 +19,16 @@
   "max_replicas": 5,
   "mean_replicas_last": 5.0
  },
+ "reverse_3": {
+  "max_sample_gap_s": 6,
+  "phase2_duration_s": 480,
+  "attain": 1.0,
+  "n": 38401,
+  "frac_429": 0.0,
+  "final_replicas": 5,
+  "max_replicas": 5,
+  "mean_replicas_last": 5.0
+ },
  "trap_1": {
   "max_sample_gap_s": 6,
   "phase2_duration_s": 480,

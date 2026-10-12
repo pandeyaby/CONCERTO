@@ -30,3 +30,18 @@ Secondary metrics: cost (mean replicas), oscillation (sd of total shed in the 2n
 
 ## E-P4: frequency separation
 Reported as part of E-fleet ("less P4"). The test is H-RQ4's P4 clause.
+
+# Pre-registration v2: testbed RQ1, threshold-ordering trap (committed before any testbed run)
+Testbed: k3s v1.31.4 (single node, on the box, $0). App: a Python HTTP service with a fixed capacity of about
+50 req/s per pod (4 workers × 80 ms sleep). Each pod has an Envoy sidecar with `local_ratelimit`, which acts as a
+per-pod shedder: the token bucket refills R tokens/s and excess requests get a 429. HPA autoscaling/v2 scales on
+the per-pod rate of 2xx responses at Envoy, read from Prometheus via prometheus-adapter. Target 35 req/s
+per pod (0.7 of capacity). minReplicas 2, maxReplicas 8. Open-loop load (vegeta, constant rate):
+50 req/s for 60 s, then 160 req/s for 480 s.
+Conditions: TRAP R = 30 req/s per pod (trips at 0.6 < 0.7). REVERSE R = 40 req/s per pod (0.8 > 0.7). Trials: 3 each.
+Metrics are measured over the last 240 s: attainment = 2xx/offered, final replicas, and mean replicas.
+- T1 (trap reproduces): every TRAP trial ends with ≤ 2 replicas and attainment ≤ 0.45.
+- T2 (reverse escapes): every REVERSE trial reaches ≥ 5 replicas and attainment ≥ 0.85.
+- T3: the mean attainment gap between REVERSE and TRAP is ≥ 0.3.
+Caveat fixed in advance: a token-bucket local rate limiter set per pod is a stand-in for a capacity-relative shedder.
+Envoy adaptive concurrency is not tested here.

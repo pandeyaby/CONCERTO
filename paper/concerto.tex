@@ -72,7 +72,7 @@ ejection, load balancing, and retries.
 
 We report the model, the audit, pre-registered simulator experiments,
 and a first testbed experiment on unmodified Kubernetes, Envoy, and
-prometheus-adapter (Section \ref{sec:testbed}): with a per-pod shedder tripping below the autoscaler's target, the fleet stayed at its replica floor and served 38\% of load, vs.\ 100\% with the thresholds reversed (1 TRAP, 2 REVERSE trials).
+prometheus-adapter (Section \ref{sec:testbed}): with a per-pod shedder tripping below the autoscaler's target, the fleet stayed at its replica floor and served 38\% of load, vs.\ 100\% with the thresholds reversed (2 TRAP, 2 REVERSE trials).
 In simulation, the shared authority budget removes
 gain-superposition instability and topology gating outperforms
 ejection caps at high utilization, but the full arbiter does \emph{not} beat an
@@ -770,6 +770,7 @@ before any run (\texttt{PREREG.md} v2). Metrics cover the final 240\,s.
 Trial & Attain. & 429 frac. & Final repl. & Mean repl. \\
 \midrule
 TRAP 1 & 0.375 & 0.625 & 2 & 2.00 \\
+TRAP 2 & 0.375 & 0.625 & 2 & 2.00 \\
 REVERSE 1 & 1.000 & 0.000 & 5 & 5.00 \\
 REVERSE 2 & 1.000 & 0.000 & 5 & 5.00 \\
 \bottomrule
@@ -780,7 +781,7 @@ REVERSE 2 & 1.000 & 0.000 & 5 & 5.00 \\
 offered load was 3.2$\times$ the starting load; the HPA read 30\,req/s per pod
 against its 35\,req/s target and never scaled. Mean attainment was 0.375
 (TRAP) vs.\ 1.000 (REVERSE), a gap of 0.625.
-Interim verdicts (pre-registration requires 3 valid trials per arm; 1 TRAP and 2 REVERSE so far): T1 PASS, T2 PASS, T3 PASS.
+Interim verdicts (pre-registration requires 3 valid trials per arm; 2 TRAP and 2 REVERSE so far): T1 PASS, T2 PASS, T3 PASS.
 The trap therefore reproduces on unmodified, documented components, and, as
 in simulation, reordering the thresholds escapes it.
 
@@ -788,7 +789,7 @@ in simulation, reordering the thresholds escapes it.
 shedder; Envoy's adaptive concurrency was not tested. The box kernel lacks
 the iptables \texttt{statistic} match, so kube-proxy could not balance a
 multi-endpoint Service; the edge Envoy replaces it. One node, one application,
-and 1/2 (TRAP/REVERSE) trials per arm.
+and 2/2 (TRAP/REVERSE) trials per arm.
 
 \section{Related Work}
 \label{sec:related}

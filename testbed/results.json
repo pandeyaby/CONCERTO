@@ -28,5 +28,15 @@
   "final_replicas": 2,
   "max_replicas": 2,
   "mean_replicas_last": 2.0
+ },
+ "trap_3": {
+  "max_sample_gap_s": 6,
+  "phase2_duration_s": 480,
+  "attain": 0.375,
+  "n": 38400,
+  "frac_429": 0.625,
+  "final_replicas": 2,
+  "max_replicas": 2,
+  "mean_replicas_last": 2.0
  }
 }

@@ -1,5 +1,5 @@
 {
- "version": "0.0.1",
+ "version": "0.1.0",
  "prop1": [
   {
    "case": "single",
@@ -496,9 +496,595 @@
    "needed_replicas_for_lam1": 18
   }
  ],
+ "e_p1": [
+  {
+   "m": 1,
+   "sum_rho_independent": 0.6,
+   "independent": {
+    "settle_s": 7.61,
+    "growing": false
+   },
+   "sum_rho_p1": 0.5,
+   "p1": {
+    "settle_s": 5.77,
+    "growing": false
+   }
+  },
+  {
+   "m": 2,
+   "sum_rho_independent": 1.2,
+   "independent": {
+    "settle_s": null,
+    "growing": true
+   },
+   "sum_rho_p1": 0.5,
+   "p1": {
+    "settle_s": 5.77,
+    "growing": false
+   }
+  },
+  {
+   "m": 3,
+   "sum_rho_independent": 1.8,
+   "independent": {
+    "settle_s": null,
+    "growing": true
+   },
+   "sum_rho_p1": 0.5,
+   "p1": {
+    "settle_s": 5.77,
+    "growing": false
+   }
+  },
+  {
+   "m": 4,
+   "sum_rho_independent": 2.4,
+   "independent": {
+    "settle_s": null,
+    "growing": true
+   },
+   "sum_rho_p1": 0.5,
+   "p1": {
+    "settle_s": 5.77,
+    "growing": false
+   }
+  },
+  {
+   "m": 5,
+   "sum_rho_independent": 3.0,
+   "independent": {
+    "settle_s": null,
+    "growing": true
+   },
+   "sum_rho_p1": 0.5,
+   "p1": {
+    "settle_s": 5.77,
+    "growing": false
+   }
+  }
+ ],
+ "e_p3": {
+  "cells": [
+   {
+    "u": 0.6,
+    "goodput": {
+     "none": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "max_ejection_10pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "min_health_50pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "gamma_gate": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     }
+    },
+    "extra_ejections_mean": {
+     "none": 0.0,
+     "max_ejection_10pct": 0.0,
+     "min_health_50pct": 0.0,
+     "gamma_gate": 0.0
+    },
+    "gate_minus_maxej": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    },
+    "gate_minus_minhealth": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    }
+   },
+   {
+    "u": 0.7,
+    "goodput": {
+     "none": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "max_ejection_10pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "min_health_50pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "gamma_gate": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     }
+    },
+    "extra_ejections_mean": {
+     "none": 0.0,
+     "max_ejection_10pct": 0.0,
+     "min_health_50pct": 0.0,
+     "gamma_gate": 0.0
+    },
+    "gate_minus_maxej": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    },
+    "gate_minus_minhealth": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    }
+   },
+   {
+    "u": 0.8,
+    "goodput": {
+     "none": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "max_ejection_10pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "min_health_50pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "gamma_gate": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     }
+    },
+    "extra_ejections_mean": {
+     "none": 0.0,
+     "max_ejection_10pct": 0.0,
+     "min_health_50pct": 0.0,
+     "gamma_gate": 0.0
+    },
+    "gate_minus_maxej": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    },
+    "gate_minus_minhealth": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    }
+   },
+   {
+    "u": 0.85,
+    "goodput": {
+     "none": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "max_ejection_10pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "min_health_50pct": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     },
+     "gamma_gate": {
+      "mean": 1.0,
+      "lo": 1.0,
+      "hi": 1.0,
+      "n": 30
+     }
+    },
+    "extra_ejections_mean": {
+     "none": 0.0,
+     "max_ejection_10pct": 0.0,
+     "min_health_50pct": 0.0,
+     "gamma_gate": 0.0
+    },
+    "gate_minus_maxej": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    },
+    "gate_minus_minhealth": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 30
+    }
+   },
+   {
+    "u": 0.9,
+    "goodput": {
+     "none": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 30
+     },
+     "max_ejection_10pct": {
+      "mean": 0.9725,
+      "lo": 0.9704,
+      "hi": 0.9747,
+      "n": 30
+     },
+     "min_health_50pct": {
+      "mean": 0.9694,
+      "lo": 0.9675,
+      "hi": 0.9713,
+      "n": 30
+     },
+     "gamma_gate": {
+      "mean": 0.9988,
+      "lo": 0.9986,
+      "hi": 0.999,
+      "n": 30
+     }
+    },
+    "extra_ejections_mean": {
+     "none": 49.0,
+     "max_ejection_10pct": 4.0,
+     "min_health_50pct": 4.3,
+     "gamma_gate": 0.0
+    },
+    "gate_minus_maxej": {
+     "mean": 0.0263,
+     "lo": 0.0242,
+     "hi": 0.0283,
+     "n": 30
+    },
+    "gate_minus_minhealth": {
+     "mean": 0.0294,
+     "lo": 0.0275,
+     "hi": 0.0313,
+     "n": 30
+    }
+   },
+   {
+    "u": 0.95,
+    "goodput": {
+     "none": {
+      "mean": 0.0,
+      "lo": 0.0,
+      "hi": 0.0,
+      "n": 30
+     },
+     "max_ejection_10pct": {
+      "mean": 0.9245,
+      "lo": 0.9199,
+      "hi": 0.9291,
+      "n": 30
+     },
+     "min_health_50pct": {
+      "mean": 0.955,
+      "lo": 0.9522,
+      "hi": 0.9579,
+      "n": 30
+     },
+     "gamma_gate": {
+      "mean": 0.9864,
+      "lo": 0.9848,
+      "hi": 0.9881,
+      "n": 30
+     }
+    },
+    "extra_ejections_mean": {
+     "none": 49.0,
+     "max_ejection_10pct": 4.8,
+     "min_health_50pct": 2.533333333333333,
+     "gamma_gate": 0.03333333333333333
+    },
+    "gate_minus_maxej": {
+     "mean": 0.0619,
+     "lo": 0.0581,
+     "hi": 0.0658,
+     "n": 30
+    },
+    "gate_minus_minhealth": {
+     "mean": 0.0314,
+     "lo": 0.0282,
+     "hi": 0.0346,
+     "n": 30
+    }
+   }
+  ],
+  "prediction_agreement": 1.0,
+  "n": 180
+ },
+ "e_fleet": {
+  "summary": {
+   "B1_defaults": {
+    "attain": {
+     "mean": 0.5322,
+     "lo": 0.5282,
+     "hi": 0.5362,
+     "n": 20
+    },
+    "cost": {
+     "mean": 11.4465,
+     "lo": 11.3559,
+     "hi": 11.537,
+     "n": 20
+    },
+    "osc": {
+     "mean": 0.2199,
+     "lo": 0.2143,
+     "hi": 0.2255,
+     "n": 20
+    },
+    "changes": {
+     "mean": 8.55,
+     "lo": 7.2201,
+     "hi": 9.8799,
+     "n": 20
+    }
+   },
+   "B2_retuned": {
+    "attain": {
+     "mean": 0.9932,
+     "lo": 0.9921,
+     "hi": 0.9944,
+     "n": 20
+    },
+    "cost": {
+     "mean": 27.9935,
+     "lo": 27.5411,
+     "hi": 28.4459,
+     "n": 20
+    },
+    "osc": {
+     "mean": 0.0286,
+     "lo": 0.0259,
+     "hi": 0.0313,
+     "n": 20
+    },
+    "changes": {
+     "mean": 29.5,
+     "lo": 27.9652,
+     "hi": 31.0348,
+     "n": 20
+    }
+   },
+   "B3_precedence": {
+    "attain": {
+     "mean": 0.5724,
+     "lo": 0.5699,
+     "hi": 0.5749,
+     "n": 20
+    },
+    "cost": {
+     "mean": 12.0,
+     "lo": 12.0,
+     "hi": 12.0,
+     "n": 20
+    },
+    "osc": {
+     "mean": 0.0732,
+     "lo": 0.0699,
+     "hi": 0.0766,
+     "n": 20
+    },
+    "changes": {
+     "mean": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 20
+    }
+   },
+   "B4_concerto": {
+    "attain": {
+     "mean": 0.9159,
+     "lo": 0.9143,
+     "hi": 0.9174,
+     "n": 20
+    },
+    "cost": {
+     "mean": 19.2317,
+     "lo": 19.1207,
+     "hi": 19.3426,
+     "n": 20
+    },
+    "osc": {
+     "mean": 0.0947,
+     "lo": 0.0908,
+     "hi": 0.0986,
+     "n": 20
+    },
+    "changes": {
+     "mean": 17.85,
+     "lo": 16.7833,
+     "hi": 18.9167,
+     "n": 20
+    }
+   },
+   "B4_less_P1": {
+    "attain": {
+     "mean": 0.9109,
+     "lo": 0.9095,
+     "hi": 0.9123,
+     "n": 20
+    },
+    "cost": {
+     "mean": 19.2317,
+     "lo": 19.1207,
+     "hi": 19.3426,
+     "n": 20
+    },
+    "osc": {
+     "mean": 0.1164,
+     "lo": 0.1117,
+     "hi": 0.1211,
+     "n": 20
+    },
+    "changes": {
+     "mean": 17.85,
+     "lo": 16.7833,
+     "hi": 18.9167,
+     "n": 20
+    }
+   },
+   "B4_less_P2": {
+    "attain": {
+     "mean": 0.3483,
+     "lo": 0.3464,
+     "hi": 0.3503,
+     "n": 20
+    },
+    "cost": {
+     "mean": 7.2689,
+     "lo": 7.2443,
+     "hi": 7.2934,
+     "n": 20
+    },
+    "osc": {
+     "mean": 0.0399,
+     "lo": 0.0391,
+     "hi": 0.0408,
+     "n": 20
+    },
+    "changes": {
+     "mean": 5.0,
+     "lo": 5.0,
+     "hi": 5.0,
+     "n": 20
+    }
+   },
+   "B4_less_P4": {
+    "attain": {
+     "mean": 0.9561,
+     "lo": 0.9538,
+     "hi": 0.9584,
+     "n": 20
+    },
+    "cost": {
+     "mean": 22.7597,
+     "lo": 22.5136,
+     "hi": 23.0058,
+     "n": 20
+    },
+    "osc": {
+     "mean": 0.0721,
+     "lo": 0.0695,
+     "hi": 0.0747,
+     "n": 20
+    },
+    "changes": {
+     "mean": 26.9,
+     "lo": 25.4717,
+     "hi": 28.3283,
+     "n": 20
+    }
+   }
+  },
+  "diffs": {
+   "best_baseline": "B2_retuned",
+   "B4_minus_best_attain": {
+    "mean": -0.0774,
+    "lo": -0.0794,
+    "hi": -0.0754,
+    "n": 20
+   },
+   "B4_cost_ratio_vs_best": 0.687,
+   "B4_less_P1_minus_B4_osc": {
+    "mean": 0.0217,
+    "lo": 0.0208,
+    "hi": 0.0226,
+    "n": 20
+   },
+   "B4_less_P2_minus_B4_attain": {
+    "mean": -0.5675,
+    "lo": -0.5702,
+    "hi": -0.5648,
+    "n": 20
+   },
+   "B4_less_P4_minus_B4_changes": {
+    "mean": 9.05,
+    "lo": 7.5828,
+    "hi": 10.5172,
+    "n": 20
+   },
+   "B2_minus_B1_osc": {
+    "mean": -0.1913,
+    "lo": -0.1975,
+    "hi": -0.1852,
+    "n": 20
+   },
+   "B2_minus_B4_attain": {
+    "mean": 0.0774,
+    "lo": 0.0754,
+    "hi": 0.0794,
+    "n": 20
+   }
+  }
+ },
+ "prereg": "PREREG.md v1; verdicts in RESULTS.md",
  "does_not_claim": [
   "behavior of any real deployed system",
   "that the models are faithful to Kubernetes/Envoy",
-  "anything about CONCERTO's performance (not implemented yet)"
+  "CONCERTO performance outside these toy models (the arbiter exists only in the simulator)",
+  "that 60%-trip shedders below a 70% HPA target are common (a modeling assumption, unaudited)",
+  "that the pool model's goodput (overloaded hosts serve at capacity) matches real overload behaviour",
+  "anything about P3 inside the fleet model (not exercised there)",
+  "statistical significance beyond the stated normal-approx 95% CIs over 20-30 seeds"
  ]
 }

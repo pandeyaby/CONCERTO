@@ -70,13 +70,14 @@ and Linkerd finds no documented hook linking autoscaling to any protection
 mechanism, while Istio and Envoy expose narrow intra-proxy guards between
 ejection, load balancing, and retries.
 
-We report the model, the architecture, the audit, and pre-registered
-simulator experiments. In simulation, the shared authority budget removes
+We report the model, the audit, pre-registered simulator experiments,
+and a first testbed experiment on unmodified Kubernetes, Envoy, and
+prometheus-adapter (Section \ref{sec:testbed}): %%TESTBED_ABS%%
+In simulation, the shared authority budget removes
 gain-superposition instability and topology gating outperforms
 ejection caps at high utilization, but the full arbiter does \emph{not} beat an
 expertly retuned baseline on attainment, and retuning \emph{does} escape the
-observation-coupling trap. The microservice testbed campaign is future work and no
-testbed measurements are claimed.
+observation-coupling trap. Further testbed experiments (P1, P3, and the arbiter itself) are future work.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -185,10 +186,11 @@ rather than by tuning.
 pre-registered hypotheses that failed.
 \end{enumerate}
 
-We are explicit about scope. All measurements in this paper come from a
-deliberately simple fleet simulator and a documentation audit. The
-microservice testbed campaign is future work; no claim here concerns
-behavior of production or testbed systems.
+We are explicit about scope. Our central evidence is the audit, the
+simulator checks of P1 and P3, and one pre-registered testbed experiment on
+the observation-coupling trap. The full arbiter is evaluated only in
+simulation, where it loses to a simple retuning; we report that as a
+negative result. No claim here concerns production systems.
 
 \section{Background}
 \label{sec:background}
@@ -624,11 +626,8 @@ application for its established use in the systems community
 Workloads are driven by an open-loop generator, with arrival patterns taken
 from public cluster traces to obtain realistic non-stationarity.
 
-The testbed carries the paper's empirical weight. The central experiment is
-the observation-coupling demonstration, because it is the channel that
-retuning cannot address: we aim to produce the autoscaler and shedder
-oscillation of Section I on unmodified, reasonably configured, widely
-deployed software.
+The first testbed experiment (Section \ref{sec:testbed}) targets the
+observation-coupling trap of Corollary \ref{cor:detune}.
 
 \subsection{Simulator}
 
@@ -746,6 +745,29 @@ gate. Predicted $\Gamma\ge1$ matched realized cascades in 180/180 ungated runs,
 but outcomes were bimodal, so this is weak evidence of predictive power. The
 pool model lets an overloaded host serve at capacity, which favors
 withholding ejection.
+
+\section{Testbed: the Threshold-Ordering Trap}
+\label{sec:testbed}
+
+\textbf{Setup.} Single-node k3s v1.31.4 on one 8-vCPU VM. A Python service
+has a fixed capacity of about 50\,req/s per pod (4 workers, 80\,ms service time). Each pod
+carries an Envoy v1.31.4 sidecar whose \texttt{local\_ratelimit} filter (token
+bucket refilled at $R$\,req/s per pod, excess answered 429) is the
+per-pod shedder. An edge Envoy round-robins over pods. The autoscaling/v2 HPA
+scales on per-pod 2xx rate at the sidecar, served by Prometheus and
+prometheus-adapter, with a target of 35\,req/s (0.7 of capacity), 2--8 replicas,
+and the default stabilization. Open-loop load from vegeta: 50\,req/s for 60\,s, then
+160\,req/s for 480\,s. TRAP sets $R=30$ (trips at 0.6, below target);
+REVERSE sets $R=40$ (0.8, above target). Thresholds T1--T3 were committed
+before any run (\texttt{PREREG.md} v2). Metrics cover the final 240\,s.
+
+%%TESTBED_TABLE%%
+
+\textbf{Caveats.} A per-pod token bucket stands in for a capacity-relative
+shedder; Envoy's adaptive concurrency was not tested. The box kernel lacks
+the iptables \texttt{statistic} match, so kube-proxy could not balance a
+multi-endpoint Service; the edge Envoy replaces it. One node, one application,
+and %%NTRIALS%% trials per arm.
 
 \section{Related Work}
 \label{sec:related}

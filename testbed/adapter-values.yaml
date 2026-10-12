@@ -1,0 +1,14 @@
+prometheus:
+  url: http://prom-prometheus-server.mon.svc
+  port: 80
+metricsRelistInterval: 15s
+rules:
+  default: false
+  custom:
+  - seriesQuery: 'envoy_http_downstream_rq_xx{envoy_response_code_class="2",namespace!="",pod!=""}'
+    resources:
+      overrides:
+        namespace: {resource: namespace}
+        pod: {resource: pod}
+    name: {as: "envoy_ok_rps"}
+    metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>,envoy_response_code_class="2",envoy_http_conn_manager_prefix="ingress"}[30s])) by (<<.GroupBy>>)'

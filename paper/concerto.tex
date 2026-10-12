@@ -3,7 +3,7 @@
 %% STATUS (rev. 2026-10-11): formalism revised to match simulator evidence;
 %% configuration audit completed (audit/mechanisms.csv); simulator results
 %% reported against PREREG.md. Testbed campaign NOT run. Incident catalogue pending.
-%% OPEN: affiliation of A. Pandey (Cisco here vs. Independent Researcher in DIPTYCH).
+%% Target: AGENT'27 @ ICSE 2027 (8 pp + refs, IEEE, single-blind).
 
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
@@ -23,7 +23,7 @@
 
 \begin{document}
 
-\title{Too Many Hands on the Throttle: Arbitrating\\Overlapping Reliability Controls in Service Fleets}
+\title{Too Many Hands on the Throttle: Testing the\\Interaction of Autonomous Reliability Agents}
 
 \author{
 \IEEEauthorblockN{Abhishek Pandey}
@@ -31,7 +31,7 @@
 pandeyabhi1987@gmail.com}
 \and
 \IEEEauthorblockN{Abhinav Pandey}
-\IEEEauthorblockA{Cisco\\
+\IEEEauthorblockA{Independent Researcher\\
 pandey.aby@gmail.com}
 }
 
@@ -80,7 +80,7 @@ testbed measurements are claimed.
 \end{abstract}
 
 \begin{IEEEkeywords}
-reliability control, autoscaling, load shedding, circuit breaking, control
+multi-agent interaction, testing autonomous systems, reliability control, autoscaling, load shedding, circuit breaking, control
 allocation, cascading failure, microservices
 \end{IEEEkeywords}
 
@@ -111,6 +111,20 @@ every controller at full authority and hope.
 This paper argues that the hope is misplaced in a specific and predictable
 way, and that the resulting failure modes are invisible from inside any
 individual controller.
+
+\subsection{Reliability controllers as autonomous agents}
+
+Each of these mechanisms is, in the sense used by the agent literature, an
+autonomous agent: it perceives part of the environment through its own
+signal, decides on its own policy, and acts without a human in the loop or a
+protocol with its peers. A fleet is therefore an uncoordinated multi-agent
+system whose agents were each validated alone. We treat the problem as one
+of \emph{verifying and testing agent interaction}: which properties of the
+composition can be checked statically from configuration, which require
+execution, and what an arbiter that mediates between agents buys. We do not
+claim these controllers learn or plan; the framing concerns autonomy and the
+absence of coordination, which is exactly what makes interaction failures
+hard to test for one agent at a time.
 
 \subsection{A failure no controller can see}
 

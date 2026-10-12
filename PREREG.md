@@ -45,3 +45,42 @@ Metrics are measured over the last 240 s: attainment = 2xx/offered, final replic
 - T3: the mean attainment gap between REVERSE and TRAP is ≥ 0.3.
 Caveat fixed in advance: a token-bucket local rate limiter set per pod is a stand-in for a capacity-relative shedder.
 Envoy adaptive concurrency is not tested here.
+
+# Pre-registration v3 (committed before any v3 run)
+Same box, k3s, Envoy v1.31.4 and analysis conventions as v2. A trial is valid only if its load phase completes and
+its max sample gap is ≤ 10 s. Invalid trials are rerun and reported.
+
+## TB-P3: outlier-ejection cascades on a pool
+Setup: 10 app pods. Each pod's capacity is drawn from {37.5, 50, 62.5} req/s by a hash of the pod name.
+A bounded queue (8 in-flight) answers 503 when full. One pod is faulty and answers 503 to every request.
+Edge Envoy outlier detection: consecutive_5xx = 5, interval 2 s, base_ejection_time 30 s.
+Open-loop load is 0.85 × total capacity for 300 s. Metrics cover the last 180 s.
+Arms:
+- UNCAPPED: max_ejection_percent = 100, panic threshold 50% (the Envoy default).
+- CAP10: max_ejection_percent = 10 (the Envoy default).
+- GAMMA: max_ejection_percent is driven at runtime by an external controller that admits one more ejection
+  only if the projected Γ is < 1.
+Trials: 3 per arm (5 if time allows).
+- P3a: mean goodput (2xx fraction) of GAMMA ≥ CAP10 − 0.02.
+- P3b: GAMMA goodput > UNCAPPED goodput by ≥ 0.05 (mean).
+- P3c: GAMMA ejects the faulty pod in ≥ 2/3 of its trials (not starving the needed ejection).
+
+## TB-P1: shared authority on one variable
+Arms:
+- INDEP: Envoy adaptive concurrency + local rate limit + retries (retry_on 5xx, 2 retries), all active.
+- BUDGET: the same mechanisms, with an external allocator that every 5 s rescales the concurrency/rate limits
+  so the summed limits track one shared target.
+Workload: step to 1.2× capacity.
+- P1a: BUDGET oscillation, sd of 1-s admitted rate over the last 180 s, ≤ 0.8 × INDEP.
+- P1b: BUDGET attainment ≥ INDEP − 0.02.
+
+## TB-RQ1-AC: trap with adaptive concurrency as the shedder
+Same as v2, with the per-pod token bucket replaced by adaptive_concurrency and HPA target 35 req/s. The trip
+point is set by latency, so it is reported as measured.
+- AC1: if the measured admitted rate per pod at saturation is below 35, TRAP behaviour reproduces
+  (≤ 2 replicas, attainment ≤ 0.6). Otherwise we report that adaptive concurrency did not create the ordering.
+
+## Second app and trial counts
+A two-tier variant (frontend → backend) for RQ1 with the token bucket, ≥ 3 trials per arm, same T1–T3 thresholds.
+Where time allows, existing arms are extended to 5 trials.
+Each item is reported as completed, partial, or not run.

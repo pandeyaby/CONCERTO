@@ -35,14 +35,20 @@ if kubectl -n tb get hpa app >/dev/null 2>&1; then
   done
   echo
 fi
+# timeout around kubectl: API stalls under load previously left 5+ min gaps.
+# On timeout/failure skip the sample rather than writing a false 0.
 if [ "$MODE" = "p3" ]; then
   ( while true; do
-      echo "$(date +%s),$(kubectl -n tb get pods -l app=app --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+      if r=$(timeout 8 kubectl -n tb get pods -l app=app --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l | tr -d ' '); then
+        [ -n "$r" ] && echo "$(date +%s),$r"
+      fi
       sleep 5
     done ) > "$D/replicas.csv" & SP=$!
 else
   ( while true; do
-      echo "$(date +%s),$(kubectl -n tb get deploy app -o jsonpath='{.status.replicas}')"
+      if r=$(timeout 8 kubectl -n tb get deploy app -o jsonpath='{.status.replicas}' 2>/dev/null); then
+        [ -n "$r" ] && echo "$(date +%s),$r"
+      fi
       sleep 5
     done ) > "$D/replicas.csv" & SP=$!
 fi

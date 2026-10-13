@@ -275,5 +275,16 @@
   "final_replicas": 10,
   "max_replicas": 10,
   "mean_replicas_last": 10.0
+ },
+ "p3_gamma_2": {
+  "max_sample_gap_s": 6,
+  "phase2_duration_s": 180,
+  "attain": 0.9968,
+  "n": 36000,
+  "frac_429": 0.0,
+  "frac_503": 0.0032,
+  "final_replicas": 10,
+  "max_replicas": 10,
+  "mean_replicas_last": 10.0
  }
 }

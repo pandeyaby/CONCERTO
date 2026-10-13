@@ -25,9 +25,11 @@ def main():
     R = {}
     for k in sorted(os.listdir("runs")):
         d = f"runs/{k}"
-        try: R[k] = a_p1(d) if k.startswith("p1_") else a_p3(d)
+        base = k[len("invalid_"):] if k.startswith("invalid_") else k
+        try: R[k] = a_p1(d) if base.startswith("p1_") else a_p3(d)
         except Exception as e: R[k] = {"valid": False, "error": str(e)[:80]}
-    V = {k: v for k, v in R.items() if v.get("valid")}
+    # Verdict arms exclude invalid_* and *b-only when a primary valid trial exists; use every valid non-invalid label.
+    V = {k: v for k, v in R.items() if v.get("valid") and not k.startswith("invalid_")}
     arm = lambda p: [v for k, v in V.items() if k.startswith(p + "_")]
     m = lambda p, f: st.mean(x[f] for x in arm(p)) if arm(p) else None
     out = {"trials": R}; ver = {}
@@ -44,6 +46,11 @@ def main():
             ver["G1"] = m("p3_gamma", "goodput") >= m("p3_uncapped", "goodput") + 0.05
             ver["G2"] = m("p3_gamma", "goodput") >= m("p3_cap10", "goodput") - 0.02
             ver["G3"] = sum(x["faulty_ejected_end"] for x in arm("p3_gamma")) >= 2
+        else:
+            # PREREG v4: if G0 fails, G1–G3 are INCONCLUSIVE (not PASS/FAIL).
+            ver["G1"] = "INCONCLUSIVE"
+            ver["G2"] = "INCONCLUSIVE"
+            ver["G3"] = "INCONCLUSIVE"
     out["verdicts"] = {k: ("PASS" if v else "FAIL") if not isinstance(v, str) else v for k, v in ver.items()}
     print(json.dumps(out, indent=1)); json.dump(out, open("results_v4.json", "w"), indent=1)
 if __name__ == "__main__": main()

@@ -1,18 +1,33 @@
 #!/bin/bash
 # Run PREREG v3 campaign arms. Continues from existing runs/<label> dirs.
+# Commits and pushes after EVERY completed valid trial.
 set -e
-ROOT=$(dirname "$0")
+ROOT=$(cd "$(dirname "$0")" && pwd)
 cd "$ROOT"
-chmod +x trial_campaign.sh
+chmod +x trial_campaign.sh commit_trial.sh
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+is_complete() {
+  local label=$1
+  [ -f "runs/$label/v2.bin" ] && [ -s "runs/$label/v2.bin" ]
+}
 
 run() {
   local label=$1; shift
-  if [ -f "runs/$label/v2.bin" ] && [ -s "runs/$label/v2.bin" ]; then
-    echo "SKIP $label (exists)"
-    return 0
+  if is_complete "$label"; then
+    echo "SKIP run $label (exists); ensuring committed"
+  else
+    echo "=== RUN $* -> $label ==="
+    "$@"
   fi
-  echo "=== RUN $* -> $label ==="
-  "$@"
+  # Commit even on SKIP so resumed campaigns push surviving artifacts.
+  ./commit_trial.sh "$label" || {
+    echo "INVALID or commit failed for $label — moving aside and failing this arm"
+    mkdir -p runs/invalid
+    ts=$(date +%Y%m%d%H%M%S)
+    mv "runs/$label" "runs/invalid/${label}_${ts}" || true
+    return 1
+  }
 }
 
 # E-AC: 3 TRAP (L=2) + 3 REVERSE (L=6)

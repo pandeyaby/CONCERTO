@@ -1,1 +1,2 @@
 runs/*/v*.bin
+__pycache__/

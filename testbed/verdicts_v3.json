@@ -1,0 +1,36 @@
+{
+  "AC1": "PASS",
+  "AC2": "PASS",
+  "AC3": "PASS",
+  "AC_n": "3/3",
+  "AC_means": {
+    "trap": 0.2855,
+    "reverse": 1.0
+  },
+  "AC_incomplete": false,
+  "TT1": "PASS",
+  "TT2": "PASS",
+  "TT3": "PASS",
+  "TT_n": "2/3",
+  "TT_means": {
+    "safe": 0.9951,
+    "indep": 0.5
+  },
+  "TT_incomplete": true,
+  "P1a": "FAIL",
+  "P1b": "FAIL",
+  "P1c": "FAIL",
+  "P1_n": 3,
+  "P1_mean_attain": 0.25,
+  "P1_incomplete": false,
+  "P3a": "FAIL",
+  "P3b": "PASS",
+  "P3c": "PASS",
+  "P3_means": {
+    "none": 0.9968,
+    "maxej10": 0.9968,
+    "minhealth50": 0.9968,
+    "gamma": 0.9968
+  },
+  "P3_incomplete": false
+}

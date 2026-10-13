@@ -73,11 +73,16 @@ ejection, load balancing, and retries.
 We report the model, the audit, pre-registered simulator experiments,
 and a first testbed experiment on unmodified Kubernetes, Envoy, and
 prometheus-adapter (Section \ref{sec:testbed}): with a per-pod shedder tripping below the autoscaler's target, the fleet stayed at its replica floor and served 38\% of load, vs.\ 100\% with the thresholds reversed (3 TRAP, 3 REVERSE trials).
-In simulation, the shared authority budget removes
-gain-superposition instability and topology gating outperforms
-ejection caps at high utilization, but the full arbiter does \emph{not} beat an
-expertly retuned baseline on attainment, and retuning \emph{does} escape the
-observation-coupling trap. Further testbed experiments (P1, P3, and the arbiter itself) are future work.
+The trap also reproduces with Envoy adaptive concurrency as the shedder
+(29\% vs.\ 100\%) and with independent shedding at two tiers (50\% vs.\
+99.5\%). The remedies fare worse. On the testbed, a static shared-budget
+stand-in for P1 served 25\% of load, \emph{worse} than independent
+shedders (50\%), because its per-pod budget fell below the autoscaler
+target and recreated the trap. A topology-gating experiment produced no
+cascade in any arm, so it could not discriminate. In simulation, the full
+arbiter lost to a simple retuning. Our main contribution is therefore a
+tested account of \emph{where} composed reliability agents fail; the remedy
+remains unvalidated.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -176,18 +181,18 @@ variable it actuates, and whether any coordination hook with its peers
 exists. We pair this with the incident record and with the practitioner
 literature that already names these interactions.
 
-\item \textbf{\sys{}, an arbitration layer} (Section \ref{sec:design}), with
-one design principle per coupling channel plus a time-scale separation rule,
-and an argument that each principle addresses its channel structurally
-rather than by tuning.
+\item \textbf{Pre-registered composition tests on real components}
+(Section \ref{sec:testbed}): the threshold-ordering trap reproduces on
+Kubernetes and Envoy with three different shedders (12/12 trap trials at the
+replica floor).
 
-\item \textbf{An evaluation protocol and pre-registered simulator results}
-(Sections \ref{sec:protocol}--\ref{sec:results}), including two
-pre-registered hypotheses that failed.
+\item \textbf{\sys{}, a proposed arbitration layer} (Section \ref{sec:design}),
+with one principle per channel, and its \emph{negative} evaluation: in
+simulation it lost to retuning, a testbed stand-in for P1 made attainment
+worse, and the P3 testbed experiment was uninformative.
 \end{enumerate}
 
-We are explicit about scope. Our central evidence is the audit, the
-simulator checks of P1 and P3, and one pre-registered testbed experiment on
+We are explicit about scope. Our central evidence is the audit and pre-registered testbed experiments on
 the observation-coupling trap. The full arbiter is evaluated only in
 simulation, where it loses to a simple retuning; we report that as a
 negative result. No claim here concerns production systems.
@@ -208,24 +213,6 @@ caps request rate. A \emph{timeout policy} bounds per-call latency. A
 \emph{retry policy} reissues failed calls, typically bounded by a
 \emph{retry budget}. A \emph{router} distributes traffic across endpoints and
 performs failover.
-
-\subsection{Why the composition is not studied}
-
-Each mechanism has a substantial literature of its own. Autoscaling has
-been treated as a control problem \cite{lorido2014}. Admission control and
-overload protection have a long lineage in both networking and web serving
-\cite{welsh2003}. Adaptive concurrency limiting draws on congestion control
-\cite{netflixlimits}. Circuit breaking is folklore formalized into libraries.
-Each literature assumes its mechanism is the one closing the loop.
-
-The composition is discussed mainly in practitioner writing. The Google SRE
-book devotes a chapter to cascading failures and to the interaction between
-overload, retries, and capacity \cite{sre2016}. The Amazon Builders' Library
-treats timeouts, retries, and backoff as a system-level concern and warns
-about retry amplification \cite{buildersretry}. This literature is correct
-and widely read. What it does not provide is a model that says when
-composition is safe, which is what an operator needs in order to configure
-more than one mechanism at a time.
 
 \section{Three Coupling Channels}
 \label{sec:taxonomy}
@@ -793,13 +780,48 @@ the iptables \texttt{statistic} match, so kube-proxy could not balance a
 multi-endpoint Service; the edge Envoy replaces it. One node, one application,
 and 3/3 (TRAP/REVERSE) trials per arm.
 
-\subsection{Pending campaign (pre-registered in PREREG v3)}
-%% PLACEHOLDER: results from branch testbed-campaign. Fill and remove this note.
-\textbf{[PENDING]} TB-P3 ($\Gamma$-gated ejection vs.\ Envoy
-\texttt{max\_ejection\_percent}; P3a--c), TB-P1 (shared budget across adaptive
-concurrency, rate limit, retries; P1a--b), RQ1 with adaptive concurrency as
-shedder (AC1), and a two-tier application (T1--T3). Verdicts will be reported
-whatever they are.
+\subsection{Campaign: three more shedders, P1, and P3}
+\label{sec:campaign}
+Pre-registered as PREREG v3b before any run. An earlier v3a (dynamic
+$\Gamma$ controller on a heterogeneous pool; an allocator over adaptive
+concurrency, rate limit and retries) was superseded before execution and
+remains untested. Load and HPA settings match RQ1. P3 instead offers 200\,req/s
+for 180\,s to 10 endpoints, one of them always failing. Under the original validity rule (sample gap
+$\le$10\,s), one safe two-tier trial was invalid, leaving $n{=}2$ for that arm.
+A relaxed rule added mid-campaign (gap $\le$600\,s, after kubectl stalls) admits
+it and changes no verdict; we report the original rule as primary.
+
+\begin{table}[t]
+\caption{Campaign, mean attainment (original-rule valid trials).}
+\label{tab:campaign}
+\centering\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Arm & $n$ & Attain. & Final repl. \\
+\midrule
+AC trap ($L{=}2$) & 3 & 0.286 & 2 \\
+AC reverse ($L{=}6$) & 3 & 1.000 & 5 \\
+Two-tier safe (edge off) & 2 & 0.995 & 5 \\
+Two-tier indep.\ (edge 80) & 3 & 0.500 & 3 \\
+P1 budget (edge 50 + side 25) & 3 & 0.250 & 2 \\
+P3 none / cap10 / cap50 / $\Gamma$ & 3 each & 0.997 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Verdicts.} AC1--3 PASS: with Envoy adaptive concurrency pinned to a fixed
+limit as the shedder, the trap reproduces. TT1--3 PASS: independent edge and
+sidecar shedding halves attainment. \textbf{P1a--c FAIL.} The budget
+stand-in sets $\Sigma R = 100$\,req/s against 160 offered, and its per-pod
+share (25) is below the HPA target (35). The autoscaler therefore never scaled
+(2 replicas in every trial), and attainment fell to 0.25. The stand-in only
+lowers configured rates and does not redistribute authority by severity, so
+this tests a naive budget, not P1 as designed. It nonetheless shows that a
+budget ignoring threshold ordering recreates the observation-coupling trap.
+\textbf{P3a FAIL, P3b--c PASS.} One failing endpoint caused about 0.3\% errors and no
+cascade under any policy, so all four arms are indistinguishable. The $\Gamma$
+arm was a static cap equal to cap10 at $N{=}10$. P3 is uninformative on the
+testbed, and its only support remains the simulator.
 
 \section{Related Work}
 \label{sec:related}
@@ -868,8 +890,7 @@ success.
 mechanisms at a time. Production fleets are larger, heterogeneous, and
 configured differently. The simulator covers scale only in a model sense.
 
-\textbf{Conclusion validity.} Testbed trials number three per arm at most
-in the completed experiment. The effects are large and consistent (attainment
+\textbf{Conclusion validity.} Testbed trials number two or three per arm. The effects are large and consistent (attainment
 0.375 vs.\ 1.000 in every trial), but small $n$ precludes fine-grained
 estimates. Simulator CIs are normal approximations over 20--30 seeds.
 
@@ -894,11 +915,16 @@ misordered, and a redistribution process with a branching threshold. We presente
 an arbitration layer with one principle per channel, designed to work without
 modifying the controllers it governs.
 
-In simulation, the shared budget and topology gate did what the model
-predicts, but the full arbiter lost to a simple retuning on attainment. The
-audit found no surface coordinating provisioning with protection, alongside
-narrow intra-proxy guards. Whether these effects appear on real software is
-the question our pending testbed campaign is designed to answer.
+The failure side of this account is now tested. The audit found no
+surface coordinating provisioning with protection. The threshold-ordering
+trap reproduced on unmodified Kubernetes and Envoy in all 12 pre-registered
+trap trials across three shedder types, and reversing the ordering escaped
+it every time. The remedy side is not. In simulation the full arbiter lost to
+retuning. On the testbed a naive shared budget made things worse by
+recreating the trap, and our cascade experiment never cascaded. A shared
+authority budget is only safe if it respects the threshold ordering it is
+meant to protect; making that constraint part of P1, and building a pool
+that actually cascades, is the next step.
 
 
 

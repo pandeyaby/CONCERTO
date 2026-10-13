@@ -793,64 +793,95 @@ the iptables \texttt{statistic} match, so kube-proxy could not balance a
 multi-endpoint Service; the edge Envoy replaces it. One node, one application,
 and 3/3 (TRAP/REVERSE) trials per arm.
 
+\subsection{Pending campaign (pre-registered in PREREG v3)}
+%% PLACEHOLDER: results from branch testbed-campaign. Fill and remove this note.
+\textbf{[PENDING]} TB-P3 ($\Gamma$-gated ejection vs.\ Envoy
+\texttt{max\_ejection\_percent}; P3a--c), TB-P1 (shared budget across adaptive
+concurrency, rate limit, retries; P1a--b), RQ1 with adaptive concurrency as
+shedder (AC1), and a two-tier application (T1--T3). Verdicts will be reported
+whatever they are.
+
 \section{Related Work}
 \label{sec:related}
 
-\textbf{Control allocation.} The assignment of corrective effort among
-redundant actuators is well developed in aerospace control
-\cite{durham1993,johansen2013}. Our contribution is not to that theory but
-to the observation that service fleets have the same actuator redundancy and
-none of the allocation discipline, and to the two coupling channels,
-observational and topological, that the aerospace formulation does not
-address because aircraft control surfaces do not corrupt each other's
-sensors or redistribute load across a graph.
+\textbf{Control allocation and feedback computing.} Assigning corrective
+effort among redundant actuators is well developed in aerospace
+\cite{durham1993,johansen2013}, and feedback control of computing systems is
+treated systematically by Hellerstein et al.\ \cite{hellerstein2004}. We borrow
+the allocation view and add two channels the aerospace formulation lacks:
+actuators that corrupt each other's sensors, and actions that redistribute
+load across a graph.
 
-\textbf{Autoscaling.} Autoscaling has been studied extensively as a control
-and prediction problem \cite{lorido2014}. This work assumes the autoscaler
-is the controller closing the loop. We study what happens when it is not the
-only one, and Proposition \ref{prop:masking} concerns the validity of the
-demand signal such work takes as given.
+\textbf{Autoscaling.} Autoscaling is studied as a control and prediction
+problem \cite{lorido2014}; production systems such as Autopilot
+\cite{autopilot2020} and FIRM \cite{firm2020} tune resources from observed
+signals. These works assume the autoscaler's input reflects demand.
+Corollary~\ref{cor:detune} and our testbed show when a co-located shedder
+breaks that assumption.
 
-\textbf{Overload control and admission.} Overload protection for servers has
-a long lineage \cite{welsh2003}, and adaptive concurrency limiting imports
-congestion-control ideas into the application layer
-\cite{netflixlimits}. Again the composition is out of scope in that
-literature.
+\textbf{Overload and admission control.} Server overload control has a long
+lineage \cite{welsh2003}. DAGOR coordinates load shedding across WeChat's
+microservice graph \cite{dagor2018}, and Breakwater uses credits to admit
+RPCs at microsecond scale \cite{breakwater2020}. Adaptive concurrency limits
+import congestion control into the application layer \cite{netflixlimits}.
+These systems coordinate \emph{one} mechanism across services. We study
+uncoordinated \emph{different} mechanisms acting on one service.
 
-\textbf{Cascading failure.} Cascade dynamics have been modeled in power grids
-and in networks, and the branching-process threshold of Proposition
-\ref{prop:cascade} is standard there. The contribution here is to treat
-cascade risk as an admission gate on a controller's action rather than as a
-post-hoc analysis; Istio's \texttt{minHealthPercent} is a fixed-fraction precursor.
+\textbf{Metastable failures and retry storms.} Bronson et al.\ define
+metastable failures, in which a trigger pushes a system into a bad state
+sustained by its own feedback (often retries) \cite{bronson2021}. Huang et
+al.\ find such failures across production incidents \cite{huang2022}. Retry
+amplification is a canonical practitioner concern
+\cite{sre2016,buildersretry}. Our threshold-ordering trap is related but
+distinct. It is a stable equilibrium of two individually correct controllers
+and needs no trigger beyond a load step. It persists because each agent's
+own loop closes correctly.
 
-\textbf{Practitioner literature.} The operational canon
-\cite{sre2016,buildersretry,buildersshed} names these interactions and
-prescribes remedies per mechanism. We supply the composition model and an
-arbitration layer, which it does not.
+\textbf{Cascading failure.} The branching threshold of
+Proposition~\ref{prop:cascade} is standard in cascade models. Our use is as an
+admission gate on an agent's action; Envoy's ejection cap and Istio's
+\texttt{minHealthPercent} are fixed-fraction precursors
+\cite{envoyoutlier,istiodr}.
+
+\textbf{Testing agent interaction.} Agents validated alone can fail together.
+Our contribution to this venue is a test method of three parts: a static
+audit of what each agent senses and actuates, pre-registered composition tests
+on real components, and an arbiter evaluated against an honest baseline.
 
 \section{Threats to Validity}
 \label{sec:threats}
 
-\textbf{Model fidelity.} The models of Section \ref{sec:model} are linearized
-and scalar, and all results in Section \ref{sec:results} come from a simple fluid simulator. They are intended to identify structural conditions, not to
-predict trajectories, and the testbed is the check on whether the conditions
-they identify actually govern real systems.
+\textbf{Construct validity.} Attainment (2xx over offered) and replica count
+are proxies for user-facing objectives. Envoy's \texttt{local\_ratelimit} per
+pod stands in for a capacity-relative shedder. The adaptive-concurrency
+variant is part of the pending campaign.
 
-\textbf{Configuration realism.} A reviewer may object that a competent
-operator would not deploy the configurations in baseline B1. The audit of
-Section \ref{sec:evidence} is partly a response: we report what the defaults
-are and what the documentation recommends, so that the baseline is defensible
-by citation rather than by assertion.
+\textbf{Internal validity.} Thresholds were pre-registered
+(\texttt{PREREG.md}) before each run. Trials with sampling gaps above 10\,s or
+truncated load phases are discarded and rerun, and we report the one such
+rerun. The box hosting the testbed paused and was once rolled back to a
+snapshot; the gap check exists for this reason. The $\Gamma$ controller
+includes a disclosed exception that allows ejecting a host with under 10\%
+success.
 
-\textbf{Benchmark representativeness.} Findings on a benchmark application
-may not transfer to production topologies, which are larger and more
-irregular. The simulator partially addresses scale and the audit addresses
-mechanism coverage, but neither substitutes for testbed or production validation, which
-we do not yet have.
+\textbf{External validity.} One node, synthetic services, and two or three
+mechanisms at a time. Production fleets are larger, heterogeneous, and
+configured differently. The simulator covers scale only in a model sense.
 
-\textbf{Incident catalogue bias.} Addressed directly in Section
-\ref{sec:evidence}. We make no prevalence claim, and the catalogue supports
-existence and mechanism only.
+\textbf{Conclusion validity.} Testbed trials number three per arm at most
+in the completed experiment. The effects are large and consistent (attainment
+0.375 vs.\ 1.000 in every trial), but small $n$ precludes fine-grained
+estimates. Simulator CIs are normal approximations over 20--30 seeds.
+
+\textbf{Negative results.} The full arbiter lost to expert retuning in
+simulation (RQ2/RQ3). We report this rather than tune the baseline down.
+
+\section{Artifact Availability}
+The simulator, audit table with per-cell source URLs, testbed manifests,
+trial scripts, raw replica traces, analysis code, and the pre-registrations
+(\texttt{PREREG.md} v1--v3, committed before the corresponding runs) are public at
+\url{https://github.com/pandeyaby/CONCERTO}. The testbed is reproducible on a
+single VM at no cost (\texttt{testbed/setup.sh}).
 
 \section{Conclusion}
 
@@ -886,6 +917,13 @@ the question our pending testbed campaign is designed to answer.
 \bibitem{envoypanic} Envoy v1.39.3, ``Panic threshold.'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/intro/arch_overview/upstream/load_balancing/panic_threshold}
 \bibitem{envoycb} Envoy v1.39.3, ``Circuit breakers (config.cluster.v3).'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/api-v3/config/cluster/v3/circuit_breaker.proto}
 \bibitem{istiodr} Istio 1.31, ``Destination rule.'' [Online]. Available: \url{https://istio.io/v1.31/docs/reference/config/networking/destination-rule/}
+\bibitem{hellerstein2004} J. L. Hellerstein, Y. Diao, S. Parekh, and D. M. Tilbury, \emph{Feedback Control of Computing Systems}. Wiley-IEEE Press, 2004, doi:10.1002/047166880X.
+\bibitem{autopilot2020} K. Rzadca et al., ``Autopilot: Workload autoscaling at Google,'' in \emph{Proc. EuroSys}, 2020, doi:10.1145/3342195.3387524.
+\bibitem{firm2020} H. Qiu, S. S. Banerjee, S. Jha, Z. T. Kalbarczyk, and R. K. Iyer, ``FIRM: An intelligent fine-grained resource management framework for SLO-oriented microservices,'' in \emph{Proc. USENIX OSDI}, 2020.
+\bibitem{dagor2018} H. Zhou et al., ``Overload control for scaling WeChat microservices,'' in \emph{Proc. ACM SoCC}, 2018, doi:10.1145/3267809.3267823.
+\bibitem{breakwater2020} I. Cho, A. Saeed, J. Fried, S. J. Park, M. Alizadeh, and A. Belay, ``Overload control for $\mu$s-scale RPCs with Breakwater,'' in \emph{Proc. USENIX OSDI}, 2020.
+\bibitem{bronson2021} N. Bronson, A. Aghayev, A. Charapko, and T. Zhu, ``Metastable failures in distributed systems,'' in \emph{Proc. HotOS}, 2021, doi:10.1145/3458336.3465286.
+\bibitem{huang2022} L. Huang et al., ``Metastable failures in the wild,'' in \emph{Proc. USENIX OSDI}, 2022.
 \end{thebibliography}
 
 \end{document}

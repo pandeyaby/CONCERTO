@@ -121,5 +121,16 @@
   "final_replicas": 3,
   "max_replicas": 3,
   "mean_replicas_last": 3.0
+ },
+ "tt_safe_3b": {
+  "max_sample_gap_s": 6,
+  "phase2_duration_s": 481,
+  "attain": 0.9996,
+  "n": 36730,
+  "frac_429": 0.0,
+  "frac_503": 0.0,
+  "final_replicas": 5,
+  "max_replicas": 5,
+  "mean_replicas_last": 5.0
  }
 }

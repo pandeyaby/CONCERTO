@@ -12,7 +12,7 @@ def hosts():
     h = {}
     for line in get(ADMIN + "/clusters").splitlines():
         p = line.split("::")
-        if len(p) < 4 or p[0] != "app": continue
+        if len(p) < 4 or p[0] != "app" or ":" not in p[1]: continue
         ip = p[1].split(":")[0]; d = h.setdefault(ip, {"ej": False})
         if p[2] in ("rq_success", "rq_error", "rq_total"): d[p[2]] = int(p[3])
         if p[2] == "health_flags": d["ej"] = "failed_outlier_check" in p[3]

@@ -23,13 +23,23 @@ def a_p3(d):
             "faulty_ejected_end": f"{fault}:9000::health_flags::/failed_outlier_check" in endc}
 def main():
     R = {}
+    def strip_prefix(k):
+        for p in ("invalid_", "excluded_", "aborted_"):
+            if k.startswith(p): return k[len(p):]
+        return k
     for k in sorted(os.listdir("runs")):
         d = f"runs/{k}"
-        base = k[len("invalid_"):] if k.startswith("invalid_") else k
+        if not os.path.isdir(d): continue
+        base = strip_prefix(k)
         try: R[k] = a_p1(d) if base.startswith("p1_") else a_p3(d)
         except Exception as e: R[k] = {"valid": False, "error": str(e)[:80]}
-    # Verdict arms exclude invalid_* and *b-only when a primary valid trial exists; use every valid non-invalid label.
-    V = {k: v for k, v in R.items() if v.get("valid") and not k.startswith("invalid_")}
+        if k.startswith("excluded_"):
+            R[k] = {**R[k], "excluded": True, "exclude_reason": "see runs/%s/EXCLUDED.txt" % k}
+        if k.startswith("aborted_"):
+            R[k] = {**R[k], "aborted": True}
+    # Verdict arms: valid trials only; never invalid_/excluded_/aborted_.
+    skip = ("invalid_", "excluded_", "aborted_")
+    V = {k: v for k, v in R.items() if v.get("valid") and not k.startswith(skip)}
     arm = lambda p: [v for k, v in V.items() if k.startswith(p + "_")]
     m = lambda p, f: st.mean(x[f] for x in arm(p)) if arm(p) else None
     out = {"trials": R}; ver = {}

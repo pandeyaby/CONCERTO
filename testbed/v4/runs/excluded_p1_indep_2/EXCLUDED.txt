@@ -1,0 +1,5 @@
+EXCLUDED from v4 analysis/verdicts.
+Reason: contaminated by orphaned p1_ctl.py from p1_p1ctl_2b which POSTed
+runtime circuit-breaker caps to the shared edge admin port 127.0.0.1:30902
+for the entire run. Decision (Abhinav, 2026-10-13): stop campaign, clean
+rerun p1_indep_2 rather than finish with disclosure-only. Files retained.

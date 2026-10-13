@@ -9,7 +9,8 @@ Reliability Controls in Service Fleets* (draft in `paper/`).
 - `testbed/`: k3s + Envoy + HPA harness. RQ1 (PREREG v2) and campaign arms AC / two-tier / P1 / P3 (PREREG v3).
   - Bring-up: `./testbed/setup.sh`
   - RQ1 trial: `./testbed/trial.sh <R> <label>`
-  - Campaign: `./testbed/run_campaign.sh` then `python3 testbed/verdicts_v3.py`
+  - Campaign: `./testbed/run_campaign.sh` then `python3 testbed/dual_verdicts.py`
+  - Results: `CAMPAIGN_RESULTS.md` (original gap rule primary; relaxed secondary)
 
 ## Does not claim
 - Anything about real deployed systems beyond the single-node testbed described in PREREG.md.

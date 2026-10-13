@@ -31,5 +31,16 @@
   "final_replicas": 5,
   "max_replicas": 5,
   "mean_replicas_last": 5.0
+ },
+ "ac_reverse_2": {
+  "max_sample_gap_s": 6,
+  "phase2_duration_s": 480,
+  "attain": 1.0,
+  "n": 38400,
+  "frac_429": 0.0,
+  "frac_503": 0.0,
+  "final_replicas": 5,
+  "max_replicas": 5,
+  "mean_replicas_last": 5.0
  }
 }

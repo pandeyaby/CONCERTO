@@ -9,13 +9,20 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 is_complete() {
   local label=$1
-  [ -f "runs/$label/v2.bin" ] && [ -s "runs/$label/v2.bin" ]
+  if [ -f "runs/$label/v2.bin" ] && [ -s "runs/$label/v2.bin" ]; then return 0; fi
+  if [ -f "runs/${label}b/v2.bin" ] && [ -s "runs/${label}b/v2.bin" ]; then return 0; fi
+  python3 -c "import json,sys; r=json.load(open('results_campaign.json')); sys.exit(0 if any(k==sys.argv[1] or k.startswith(sys.argv[1]+'_') or k==sys.argv[1]+'b' for k in r) else 1)" "$label" 2>/dev/null
 }
 
 run_once() {
   local label=$1; shift
   if is_complete "$label"; then
     echo "SKIP run $label (exists); ensuring committed"
+    # Prefer committing the labelb artifact if that is what exists
+    if [ ! -d "runs/$label" ] && [ -d "runs/${label}b" ]; then
+      ./commit_trial.sh "${label}b" || true
+      return 0
+    fi
   else
     echo "=== RUN $* -> $label ==="
     "$@"
@@ -24,7 +31,6 @@ run_once() {
 }
 
 run() {
-  # Last CLI arg is the label for trial_campaign.sh; keep it in sync.
   local label=$1; shift
   if run_once "$label" "$@"; then
     return 0
@@ -46,7 +52,7 @@ run() {
   return 0
 }
 
-# E-AC: 3 TRAP (L=2) + 3 REVERSE (L=6)
+# E-AC
 for i in 1 2 3; do
   run "ac_trap_$i" ./trial_campaign.sh ac 2 "ac_trap_$i"
   run "ac_reverse_$i" ./trial_campaign.sh ac 6 "ac_reverse_$i"

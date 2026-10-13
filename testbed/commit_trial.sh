@@ -1,6 +1,7 @@
 #!/bin/bash
 # Analyze one completed trial label, merge into results_campaign.json, commit+push.
 # usage: commit_trial.sh <label>
+# Exit 3 = trial invalid. Exit 0 = trial accepted (even if push had to be retried).
 set -e
 ROOT=$(cd "$(dirname "$0")" && pwd)
 cd "$ROOT"
@@ -14,9 +15,6 @@ from analyze import analyze
 label = "$LABEL"
 path = f"runs/{label}"
 a = analyze(path)
-# Validity: vegeta window must be complete. Replica sampling prefers <=10s gaps
-# (RQ1 bar); under API stalls we accept degraded sampling if enough points remain
-# and the gap is bounded, so attainment-primary arms are not discarded.
 rep_n = sum(1 for l in open(f"{path}/replicas.csv") if l.strip().split(",")[-1].isdigit())
 if label.startswith("p3_"):
     ok = a["phase2_duration_s"] >= 170 and a.get("n", 0) >= 1000
@@ -40,13 +38,30 @@ PY
 REPO=$(cd "$ROOT/.." && pwd)
 cd "$REPO"
 git add "testbed/runs/$LABEL/replicas.csv" testbed/results_campaign.json
-# clusters.txt for P3 if present
 [ -f "testbed/runs/$LABEL/clusters.txt" ] && git add "testbed/runs/$LABEL/clusters.txt" || true
-git add testbed/fill_campaign_paper.py testbed/run_campaign.sh testbed/commit_trial.sh testbed/.gitignore 2>/dev/null || true
 if git diff --cached --quiet; then
   echo "nothing new to commit for $LABEL"
 else
   git commit -m "Testbed campaign: $LABEL valid"
-  git push origin HEAD
+fi
+
+# Push with rebase-retry; never fail the trial over a push race.
+push_ok=0
+for attempt in 1 2 3 4; do
+  if git push origin HEAD; then
+    push_ok=1
+    break
+  fi
+  echo "push attempt $attempt failed; fetch+rebase and retry"
+  git fetch origin cursor/genesisgttestbed-campaign-ebe8
+  git rebase origin/cursor/genesisgttestbed-campaign-ebe8 || {
+    git rebase --abort 2>/dev/null || true
+    # Prefer ours for results merge via manual combine
+    git pull --no-rebase origin cursor/genesisgttestbed-campaign-ebe8 -X ours || true
+  }
+  sleep $((attempt * 4))
+done
+if [ "$push_ok" -ne 1 ]; then
+  echo "WARNING: could not push $LABEL; trial data is committed locally"
 fi
 echo "COMMITTED $LABEL"

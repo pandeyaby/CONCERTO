@@ -1,5 +1,5 @@
 # v4 P1 plant: per-pod sidecar Envoy concurrency shedder + edge Envoy concurrency shedder + HPA on per-pod 2xx rate.
-# Shedding = circuit-breaker overflow (max_connections/max_requests, max_pending 0 -> 503), adjustable at runtime via
+# Shedding = circuit-breaker overflow (max_connections/max_requests, max_pending 1 -> 503), adjustable at runtime via
 # circuit_breakers.app.default.{max_connections,max_requests} runtime keys (admin layer).
 apiVersion: v1
 kind: ConfigMap
@@ -33,7 +33,7 @@ data:
       - name: app
         type: STATIC
         connect_timeout: 1s
-        circuit_breakers: {thresholds: [{max_connections: __SIDE__, max_requests: __SIDE__, max_pending_requests: 0}]}
+        circuit_breakers: {thresholds: [{max_connections: __SIDE__, max_requests: __SIDE__, max_pending_requests: 1}]}
         load_assignment: {cluster_name: app, endpoints: [{lb_endpoints: [{endpoint: {address: {socket_address: {address: 127.0.0.1, port_value: 9000}}}}]}]}
   edge.yaml: |
     admin: {address: {socket_address: {address: 0.0.0.0, port_value: 9901}}}
@@ -55,7 +55,7 @@ data:
         dns_refresh_rate: 2s
         lb_policy: ROUND_ROBIN
         connect_timeout: 1s
-        circuit_breakers: {thresholds: [{max_connections: __EDGE__, max_requests: __EDGE__, max_pending_requests: 0}]}
+        circuit_breakers: {thresholds: [{max_connections: __EDGE__, max_requests: __EDGE__, max_pending_requests: 1}]}
         load_assignment: {cluster_name: app, endpoints: [{lb_endpoints: [{endpoint: {address: {socket_address: {address: app.v4p1.svc.cluster.local, port_value: 8080}}}}]}]}
 ---
 apiVersion: apps/v1

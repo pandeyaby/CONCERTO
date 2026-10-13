@@ -173,3 +173,9 @@ threshold 50%. Load 0.90 × total capacity, open loop, 300 s; metrics over the f
 - G1: GAMMA mean goodput ≥ UNCAPPED + 0.05.
 - G2: GAMMA mean goodput ≥ CAP10 − 0.02.
 - G3: GAMMA has the faulty pod ejected at the end of ≥ 2 of 3 trials.
+
+### v4 amendment A1 (smoke, before any v4 trial)
+The P1 smoke (not a trial) showed that `max_pending_requests: 0` rejects every request: Envoy routes every HTTP/1
+request through the pending queue. Both shedders now use `max_pending_requests: 1`. Hypotheses, arms and thresholds
+are unchanged. Smoke results, for disclosure only: 2 pods at 100 req/s served 41% under the static trap caps and 69%
+with p1_ctl.py running. The controller wrote edge cap 11 and sidecar cap 4 through the runtime API as designed.

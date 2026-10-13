@@ -77,7 +77,7 @@ In simulation, the shared authority budget removes
 gain-superposition instability and topology gating outperforms
 ejection caps at high utilization, but the full arbiter does \emph{not} beat an
 expertly retuned baseline on attainment, and retuning \emph{does} escape the
-observation-coupling trap. Further testbed experiments (P1, P3, and the arbiter itself) are future work.
+observation-coupling trap. A follow-on testbed campaign (Section~\ref{sec:campaign}) exercises adaptive concurrency, two-tier shedding, a P1 budget stand-in, and outlier caps; the arbiter itself remains future work.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -788,10 +788,96 @@ The trap therefore reproduces on unmodified, documented components, and, as
 in simulation, reordering the thresholds escapes it.
 
 \textbf{Caveats.} A per-pod token bucket stands in for a capacity-relative
-shedder; Envoy's adaptive concurrency was not tested. The box kernel lacks
+shedder. Section~\ref{sec:campaign} retests the trap with Envoy adaptive concurrency. The box kernel lacks
 the iptables \texttt{statistic} match, so kube-proxy could not balance a
 multi-endpoint Service; the edge Envoy replaces it. One node, one application,
 and 3/3 (TRAP/REVERSE) trials per arm.
+
+
+\section{Testbed Campaign: AC, Two-Tier, P1, P3}
+\label{sec:campaign}
+
+Thresholds were committed in \texttt{PREREG.md} v3 before any of these runs.
+The stack matches Section~\ref{sec:testbed} unless noted.
+
+\subsection{E-AC: adaptive-concurrency trap}
+
+Pinned Envoy \texttt{adaptive\_concurrency} ($L{=}2$ TRAP, $L{=}6$ REVERSE) on the
+503 rejection path. Verdicts: AC1 ?, AC2 ?, AC3 ?.
+
+\begin{table}[t]
+\caption{E-AC final 240\,s. Reject frac.\ counts 503s.}
+\label{tab:ac}
+\centering\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Trial & Attain. & Reject & Final repl. & Mean repl. \\
+\midrule
+AC-TRAP 1 & 0.285 & 0.715 & 2 & 2.00 \\
+AC-TRAP 2 & 0.285 & 0.715 & 2 & 2.00 \\
+AC-TRAP 3 & 0.286 & 0.714 & 2 & 2.00 \\
+AC-REV 1 & 1.000 & 0.000 & 5 & 5.00 \\
+AC-REV 2 & 1.000 & 0.000 & 5 & 5.00 \\
+AC-REV 3 & 1.000 & 0.000 & 5 & 5.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{E-two-tier and E-P1}
+
+Independent edge+sidecar \texttt{local\_ratelimit} vs.\ a shared refill budget.
+Verdicts: TT1 ?, TT2 ?, TT3 ?; P1a ?, P1b ?, P1c ?.
+
+\begin{table}[t]
+\caption{Two-tier and P1, final 240\,s. Reject frac.\ counts 429s.}
+\label{tab:twotier}
+\centering\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Trial & Attain. & Reject & Final repl. & Mean repl. \\
+\midrule
+TT-SAFE 1 & 0.992 & 0.008 & 5 & 5.00 \\
+TT-SAFE 2 & 1.000 & 0.000 & 5 & 5.00 \\
+TT-SAFE 3 & 0.999 & 0.001 & 5 & 5.00 \\
+TT-INDEP 1 & 0.500 & 0.500 & 3 & 3.00 \\
+TT-INDEP 2 & 0.500 & 0.500 & 3 & 3.00 \\
+TT-INDEP 3 & 0.500 & 0.500 & 3 & 3.00 \\
+TT-INDEP 4 & 0.500 & 0.500 & 3 & 3.00 \\
+P1 1 & 0.250 & 0.750 & 2 & 2.00 \\
+P1 2 & 0.250 & 0.750 & 2 & 2.00 \\
+P1 3 & 0.250 & 0.750 & 2 & 2.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{E-P3: outlier caps}
+
+Fixed 10-endpoint pool (9 healthy + 1 always-503), 200\,req/s for 180\,s, HPA off.
+Verdicts: P3a ?, P3b ?, P3c ?.
+
+\begin{table}[t]
+\caption{E-P3 full-window goodput (2xx fraction).}
+\label{tab:p3}
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Trial & Goodput & 503 frac. & Endpoints \\
+\midrule
+none 1 & 0.997 & 0.003 & 10 \\
+none 2 & 0.997 & 0.003 & 10 \\
+none 3 & 0.997 & 0.003 & 10 \\
+maxej10 1 & 0.997 & 0.003 & 10 \\
+maxej10 2 & 0.997 & 0.003 & 10 \\
+maxej10 3 & 0.997 & 0.003 & 10 \\
+minhealth50 1 & 0.997 & 0.003 & 10 \\
+minhealth50 2 & 0.997 & 0.003 & 10 \\
+minhealth50 3 & 0.997 & 0.003 & 10 \\
+gamma 1 & 0.997 & 0.003 & 10 \\
+gamma 2 & 0.997 & 0.003 & 10 \\
+gamma 3 & 0.997 & 0.003 & 10 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Related Work}
 \label{sec:related}

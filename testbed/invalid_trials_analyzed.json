@@ -1,0 +1,65 @@
+{
+  "p1_budget_2_20261013071340": {
+    "attain": 0.25,
+    "gap": 1112,
+    "phase2": 480,
+    "final_replicas": 2,
+    "valid_original": false,
+    "valid_relaxed": false,
+    "rep_n": 107
+  },
+  "tt_indep_2_20261013050147": {
+    "attain": 0.5,
+    "gap": 917,
+    "phase2": 480,
+    "final_replicas": 3,
+    "valid_original": false,
+    "valid_relaxed": false,
+    "rep_n": 106
+  },
+  "tt_indep_3_20261013061138": {
+    "attain": 0.5,
+    "gap": 6,
+    "phase2": 480,
+    "final_replicas": 3,
+    "valid_original": true,
+    "valid_relaxed": true,
+    "rep_n": 107
+  },
+  "p1_budget_2b_20261013073856": {
+    "attain": 0.25,
+    "gap": 920,
+    "phase2": 480,
+    "final_replicas": 2,
+    "valid_original": false,
+    "valid_relaxed": false,
+    "rep_n": 107
+  },
+  "tt_safe_3_20261013053647": {
+    "attain": 1.0,
+    "gap": 907,
+    "phase2": 480,
+    "final_replicas": 5,
+    "valid_original": false,
+    "valid_relaxed": false,
+    "rep_n": 107
+  },
+  "tt_indep_1_20261013033353": {
+    "attain": 0.5,
+    "gap": 308,
+    "phase2": 480,
+    "final_replicas": 3,
+    "valid_original": false,
+    "valid_relaxed": true,
+    "rep_n": 107
+  },
+  "tt_safe_3b_20261013060137": {
+    "attain": 0.9986,
+    "gap": 894,
+    "phase2": 480,
+    "final_replicas": 5,
+    "valid_original": false,
+    "valid_relaxed": false,
+    "rep_n": 106
+  }
+}

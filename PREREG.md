@@ -138,3 +138,38 @@ Metrics: goodput = 2xx/offered over the full 180 s; ejected_hint from edge admin
 - P3a: under "none", mean goodput ≤ 0.85 OR mean attainment below gamma by ≥ 5 pp (cascade/overshed).
 - P3b: |gamma mean goodput − maxej10 mean goodput| ≤ 5 pp (consistency at this N).
 - P3c: gamma mean goodput ≥ minhealth50 mean goodput − 5 pp.
+
+# Pre-registration v4: the real remedies (committed before any v4 trial; smoke runs are labelled smoke_* and excluded)
+Code: `testbed/v4/` (p1.yaml.tpl, p1_ctl.py, p3_pool.yaml.tpl, gamma_ctl.py, trial.sh, analyze.py, run_all.sh).
+Same stack as v2/v3b. Validity (primary, unchanged): load phase complete (P1 ≥ 470 s, P3 ≥ 290 s) and sample gap ≤ 10 s.
+Invalid trials are rerun once as `<label>b` and every invalid trial is reported. No relaxed rule will be used for verdicts.
+Trials: 3 per arm (N=3), interleaved.
+
+## V: threshold-aware shared budget (P1 as designed)
+Plant: 50 req/s pods; a per-pod sidecar Envoy concurrency shedder (circuit-breaker overflow → 503); an edge Envoy
+concurrency shedder; HPA on per-pod 2xx, target 35 req/s, 2–8 replicas. Load: 50 req/s for 60 s, then 160 req/s for 480 s.
+- INDEP: sidecar cap 2 (≈25 req/s, below target) and edge cap 8. This is the trap configuration.
+- P1CTL: starts from the INDEP configuration. The external controller p1_ctl.py adjusts both caps every 5 s via Envoy
+  runtime. (i) Threshold constraint: no sidecar trips below 1.15 × target. (ii) Severity-scaled budget: edge cap =
+  n_ready × 50 req/s × 0.08 s × (1 + 0.10 + 0.20·(1 − s)).
+- SAFE: sidecar cap 6, edge cap 1000 (shedding effectively off).
+Hypotheses (metrics on the final 240 s unless noted):
+- V1: P1CTL mean attainment ≥ INDEP + 0.25.
+- V2: every P1CTL trial ends with ≥ 5 replicas.
+- V3: P1CTL mean attainment ≥ SAFE − 0.05.
+- V4 (protection retained): P1CTL p99 latency of 2xx responses in the first 120 s of the 160 req/s phase ≤ 0.8 × SAFE.
+P1 is "supported on the testbed" only if V1–V3 all pass. V4 is reported separately.
+
+## G: Γ-gated ejection on a pool that can cascade
+Pool: 10 pods with capacity 37.5, 50 or 62.5 req/s (by a hash of the pod name) and an 8-in-flight queue (503 when full).
+One pod is made faulty (503 always). Edge outlier detection: consecutive_5xx 5, interval 2 s, base ejection 30 s, panic
+threshold 50%. Load 0.90 × total capacity, open loop, 300 s; metrics over the final 180 s.
+- UNCAPPED: max_ejection_percent 100.
+- CAP10: max_ejection_percent 10.
+- GAMMA: max_ejection_percent driven at runtime by gamma_ctl.py (dynamic Γ). One more ejection is admitted only if a
+  failing host has projected Γ < 1, or is dead (success < 10%). The dead-host exception is part of the design.
+- G0 (informativeness gate): mean max concurrent ejections under UNCAPPED ≥ 4. If G0 fails, G1–G3 are INCONCLUSIVE
+  (no cascade occurred) and are not reported as PASS or FAIL.
+- G1: GAMMA mean goodput ≥ UNCAPPED + 0.05.
+- G2: GAMMA mean goodput ≥ CAP10 − 0.02.
+- G3: GAMMA has the faulty pod ejected at the end of ≥ 2 of 3 trials.

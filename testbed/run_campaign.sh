@@ -33,11 +33,17 @@ run() {
   mkdir -p runs/invalid
   ts=$(date +%Y%m%d%H%M%S)
   mv "runs/$label" "runs/invalid/${label}_${ts}" || true
-  # Replace trailing label arg with labelb for retry.
   local args=("$@")
   local last=$((${#args[@]} - 1))
   args[$last]="${label}b"
-  run_once "${label}b" "${args[@]}"
+  if run_once "${label}b" "${args[@]}"; then
+    return 0
+  fi
+  echo "FAILED $label after retry — continuing campaign"
+  mkdir -p runs/invalid
+  ts=$(date +%Y%m%d%H%M%S)
+  mv "runs/${label}b" "runs/invalid/${label}b_${ts}" 2>/dev/null || true
+  return 0
 }
 
 # E-AC: 3 TRAP (L=2) + 3 REVERSE (L=6)

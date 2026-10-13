@@ -1,0 +1,10 @@
+app::10.42.0.84:9000::health_flags::healthy
+app::10.42.0.90:9000::health_flags::healthy
+app::10.42.0.87:9000::health_flags::healthy
+app::10.42.0.88:9000::health_flags::healthy
+app::10.42.0.82:9000::health_flags::healthy
+app::10.42.0.89:9000::health_flags::healthy
+app::10.42.0.81:9000::health_flags::healthy
+app::10.42.0.83:9000::health_flags::healthy
+app::10.42.0.85:9000::health_flags::healthy
+app::10.42.0.91:9000::health_flags::/failed_outlier_check

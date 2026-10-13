@@ -31,7 +31,7 @@ def sidecar_ac(limit: int) -> str:
                 typed_config:
                   "@type": type.googleapis.com/envoy.extensions.filters.http.adaptive_concurrency.v3.AdaptiveConcurrency
                   gradient_controller_config:
-                    sample_rtt_percentile: {{value: 50}}
+                    sample_aggregate_percentile: {{value: 50}}
                     concurrency_limit_params:
                       max_concurrency_limit: {limit}
                       concurrency_update_interval: 0.1s
@@ -40,7 +40,7 @@ def sidecar_ac(limit: int) -> str:
                       request_count: 20
                       min_concurrency: {limit}
                       jitter: {{value: 0}}
-                  enabled: {{default_value: {{numerator: 100, denominator: HUNDRED}}, runtime_key: ac}}"""
+                  enabled: {{default_value: true, runtime_key: ac}}"""
 
 
 def edge_router_only() -> str:
@@ -127,7 +127,7 @@ data:
       - name: app
         type: STATIC
         connect_timeout: 1s
-        load_assignment: {{cluster_name: app, endpoints: [{{lb_endpoints: [{{endpoint: {{address: {{socket_address: {{address: 127.0.0.1, port_value: 9000}}}}}}]}}]}}}}
+        load_assignment: {{cluster_name: app, endpoints: [{{lb_endpoints: [{{endpoint: {{address: {{socket_address: {{address: 127.0.0.1, port_value: 9000}}}}}}}}]}}]}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -188,7 +188,7 @@ data:
       - name: app
         type: STATIC
         connect_timeout: 1s
-        load_assignment: {{cluster_name: app, endpoints: [{{lb_endpoints: [{{endpoint: {{address: {{socket_address: {{address: 127.0.0.1, port_value: 9000}}}}}}]}}]}}}}
+        load_assignment: {{cluster_name: app, endpoints: [{{lb_endpoints: [{{endpoint: {{address: {{socket_address: {{address: 127.0.0.1, port_value: 9000}}}}}}}}]}}]}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -247,7 +247,7 @@ data:
         connect_timeout: 1s
         circuit_breakers: {{thresholds: [{{max_connections: 100000, max_pending_requests: 100000, max_requests: 100000}}]}}
 {outlier}
-        load_assignment: {{cluster_name: app, endpoints: [{{lb_endpoints: [{{endpoint: {{address: {{socket_address: {{address: app.tb.svc.cluster.local, port_value: 8080}}}}}}]}}]}}}}
+        load_assignment: {{cluster_name: app, endpoints: [{{lb_endpoints: [{{endpoint: {{address: {{socket_address: {{address: app.tb.svc.cluster.local, port_value: 8080}}}}}}}}]}}]}}
 ---
 apiVersion: apps/v1
 kind: Deployment

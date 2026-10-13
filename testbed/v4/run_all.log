@@ -37,3 +37,10 @@ Verified INDEP caps before teardown: edge max_conn/req=8, sidecar=2, runtime ent
 p1 indep p1_indep_2 done
 valid=True
 CLEAN_INDEP2_EXIT:0
+=== RESUME START 2026-10-13T22:58:39+00:00 ===
+bash: ./resume_remaining.sh: Permission denied
+RESUME_SHELL_EXIT:0
+=== RESUME RESTART 2026-10-13T22:58:51+00:00 ===
+=== START p1 p1ctl p1_p1ctl_3 2026-10-13T22:58:53+00:00 ===
+p1 p1ctl p1_p1ctl_3 done
+valid=True label=p1_p1ctl_3

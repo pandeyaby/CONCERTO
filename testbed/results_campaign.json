@@ -87,5 +87,16 @@
   "max_replicas": 3,
   "mean_replicas_last": 3.0,
   "sampling": "degraded"
+ },
+ "tt_indep_1": {
+  "max_sample_gap_s": 6,
+  "phase2_duration_s": 480,
+  "attain": 0.5,
+  "n": 38401,
+  "frac_429": 0.5,
+  "frac_503": 0.0,
+  "final_replicas": 3,
+  "max_replicas": 3,
+  "mean_replicas_last": 3.0
  }
 }

@@ -12,7 +12,7 @@ is_complete() {
   [ -f "runs/$label/v2.bin" ] && [ -s "runs/$label/v2.bin" ]
 }
 
-run() {
+run_once() {
   local label=$1; shift
   if is_complete "$label"; then
     echo "SKIP run $label (exists); ensuring committed"
@@ -20,14 +20,24 @@ run() {
     echo "=== RUN $* -> $label ==="
     "$@"
   fi
-  # Commit even on SKIP so resumed campaigns push surviving artifacts.
-  ./commit_trial.sh "$label" || {
-    echo "INVALID or commit failed for $label — moving aside and failing this arm"
-    mkdir -p runs/invalid
-    ts=$(date +%Y%m%d%H%M%S)
-    mv "runs/$label" "runs/invalid/${label}_${ts}" || true
-    return 1
-  }
+  ./commit_trial.sh "$label"
+}
+
+run() {
+  # Last CLI arg is the label for trial_campaign.sh; keep it in sync.
+  local label=$1; shift
+  if run_once "$label" "$@"; then
+    return 0
+  fi
+  echo "INVALID $label — moving aside and retrying once as ${label}b"
+  mkdir -p runs/invalid
+  ts=$(date +%Y%m%d%H%M%S)
+  mv "runs/$label" "runs/invalid/${label}_${ts}" || true
+  # Replace trailing label arg with labelb for retry.
+  local args=("$@")
+  local last=$((${#args[@]} - 1))
+  args[$last]="${label}b"
+  run_once "${label}b" "${args[@]}"
 }
 
 # E-AC: 3 TRAP (L=2) + 3 REVERSE (L=6)

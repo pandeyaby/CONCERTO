@@ -32,9 +32,9 @@ else
   curl -s http://127.0.0.1:30903/clusters | grep -E "health_flags" > "$D/clusters_end.txt" || true
 fi
 kill $SP 2>/dev/null || true; [ -n "$CTL" ] && kill $CTL 2>/dev/null || true
-# Belt-and-suspenders: drop any leftover controllers/samplers from a prior crashed trial (NOTES #6).
-pkill -f '[p]1_ctl.py' 2/dev/null || true
-pkill -f '[g]amma_ctl.py' 2/dev/null || true
-pkill -f '[s]ample_replicas.py' 2/dev/null || true
+# Belt-and-suspenders: drop any leftover controllers/samplers from a prior crashed trial (NOTES #6/#7).
+pkill -f '[p]1_ctl.py' 2>/dev/null || true
+pkill -f '[g]amma_ctl.py' 2>/dev/null || true
+pkill -f '[s]ample_replicas.py' 2>/dev/null || true
 pkill -f '[s]ample_ejected.py' 2>/dev/null || true
 echo "$EXP $ARM $L done"

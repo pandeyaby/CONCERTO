@@ -36,3 +36,4 @@ Preflight: no stray ctl/sampler/vegeta
 Verified INDEP caps before teardown: edge max_conn/req=8, sidecar=2, runtime entries empty
 p1 indep p1_indep_2 done
 valid=True
+CLEAN_INDEP2_EXIT:0

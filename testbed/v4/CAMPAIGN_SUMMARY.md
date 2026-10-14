@@ -1,24 +1,30 @@
-# v4 campaign summary (in progress)
+# v4 campaign summary (complete)
 
-## Contaminated run excluded
+## Official verdicts
 
-| Label | Role | attain | final_replicas | Notes |
-|-------|------|--------|----------------|-------|
-| `excluded_p1_indep_2` | EXCLUDED | 0.6935 | 3 | Orphan `p1_ctl` from `p1_p1ctl_2b` capped shared edge admin for the whole run. Files retained; not used in verdicts. |
-| `p1_indep_2` | clean rerun | 0.2632 | 2 | Verified INDEP caps (edge=8, sidecar=2, no runtime overrides). Valid. |
-| `p1_indep_1` | reference | 0.2631 | 2 | Uncontaminated trap baseline. |
+| Claim | Verdict | Notes |
+|-------|---------|-------|
+| V1 | **INCONCLUSIVE** | Only **2** valid P1CTL trials (`p1_p1ctl_1`, `p1_p1ctl_3`). `p1_p1ctl_2` + one-shot rerun `p1_p1ctl_2b` both invalid (gap ≫ 10 s from VM suspend). PREREG requires 3/arm; `analyze.py` does not emit V1–V4. |
+| V2 | **INCONCLUSIVE** | same |
+| V3 | **INCONCLUSIVE** | same |
+| V4 | **INCONCLUSIVE** | same |
+| G0 | **PASS** | mean max concurrent ejections UNCAPPED = 7 ≥ 4 |
+| G1 | **FAIL** | GAMMA mean goodput 0.9145 ≱ UNCAPPED 0.8987 + 0.05 |
+| G2 | **PASS** | GAMMA 0.9145 ≥ CAP10 0.9191 − 0.02 |
+| G3 | **PASS** | faulty ejected at end in 3/3 GAMMA trials |
 
-## P1 verdict impact (provisional)
+P1 “supported on the testbed” (V1–V3 all pass): **not established** (V1–V3 INCONCLUSIVE).
 
-Official V1–V4 require 3 valid trials per arm; the campaign was stopped mid-stream, so `analyze.py` emits no V/G verdicts yet.
+## Contaminated / invalid / aborted (retained, not in verdict arms)
 
-Using INDEP means from the two available valid indep trials:
+| Label | Reason |
+|-------|--------|
+| `excluded_p1_indep_2` | Contaminated by orphan `p1_ctl` from `p1_p1ctl_2b` (attain 0.6935 / 3 replicas). Clean rerun is `p1_indep_2`. |
+| `invalid_p1_p1ctl_2` | gap 1823 s (VM suspend) |
+| `p1_p1ctl_2b` | one-shot rerun; gap 2405 s (still invalid) |
+| `aborted_p1_p1ctl_3` | stopped mid-load for clean indep_2 restart; superseded by fresh `p1_p1ctl_3` |
 
-- **If contaminated indep_2 had been kept:** INDEP mean ≈ (0.2631+0.6935)/2 = **0.4783** → V1 bar = INDEP+0.25 ≈ **0.728**. With current sole valid P1CTL (`p1_p1ctl_1` attain 0.6981), provisional V1 would be **FAIL**.
-- **With clean indep_2:** INDEP mean ≈ (0.2631+0.2632)/2 = **0.26315** → V1 bar ≈ **0.513**. Same P1CTL attain 0.6981 → provisional V1 would be **PASS**.
+## Means (valid, non-excluded)
 
-So replacing the contaminated result with the clean rerun **changes the provisional V1 direction** (FAIL → PASS) on currently available trials. Full V1–V4 still await completing N=3 per arm (and a valid `p1_p1ctl_2` / `p1_p1ctl_3`).
-
-## Harness notes
-
-See `NOTES.md` §6–§7. PR #2 remains draft; not merged.
+- INDEP attain mean 0.2646 (n=3); P1CTL 0.6897 (n=2); SAFE 0.8927 (n=3)
+- UNCAPPED goodput 0.8987; CAP10 0.9191; GAMMA 0.9145 (all n=3)

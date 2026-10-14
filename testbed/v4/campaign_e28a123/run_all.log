@@ -1,0 +1,313 @@
+p1 p1ctl p1_p1ctl_1 done
+To https://github.com/pandeyaby/CONCERTO
+   0c5ce3a..3a80042  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+p1 indep p1_indep_1 done
+To https://github.com/pandeyaby/CONCERTO
+   3a80042..bb0d3c2  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+p1 safe p1_safe_1 done
+To https://github.com/pandeyaby/CONCERTO
+   bb0d3c2..479e6f9  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+p1 p1ctl p1_p1ctl_2 done
+./trial.sh: line 35: syntax error near unexpected token `('
+To https://github.com/pandeyaby/CONCERTO
+   479e6f9..115dd2b  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+To https://github.com/pandeyaby/CONCERTO
+   95d9f61..2439b75  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+p1 safe p1_safe_2 done
+To https://github.com/pandeyaby/CONCERTO
+   a39b4ff..d6da4c6  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+Terminated
+CAMPAIGN_EXIT:137
+
+=== CAMPAIGN STOPPED 2026-10-13T22:41:59+00:00 ===
+Reason: contaminated p1_indep_2; clean rerun ordered.
+Moved runs/p1_indep_2 -> runs/excluded_p1_indep_2
+Moved runs/p1_p1ctl_3 -> runs/aborted_p1_p1ctl_3 (if present)
+
+
+=== CLEAN RERUN p1_indep_2 2026-10-13T22:44:04+00:00 ===
+Preflight: no stray ctl/sampler/vegeta
+Verified INDEP caps before teardown: edge max_conn/req=8, sidecar=2, runtime entries empty
+p1 indep p1_indep_2 done
+valid=True
+CLEAN_INDEP2_EXIT:0
+=== RESUME START 2026-10-13T22:58:39+00:00 ===
+bash: ./resume_remaining.sh: Permission denied
+RESUME_SHELL_EXIT:0
+=== RESUME RESTART 2026-10-13T22:58:51+00:00 ===
+=== START p1 p1ctl p1_p1ctl_3 2026-10-13T22:58:53+00:00 ===
+p1 p1ctl p1_p1ctl_3 done
+valid=True label=p1_p1ctl_3
+To https://github.com/pandeyaby/CONCERTO
+   ad0ab0f..dddf3ee  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p1_p1ctl_3 2026-10-13T23:08:12+00:00 ===
+=== START p1 indep p1_indep_3 2026-10-13T23:08:13+00:00 ===
+p1 indep p1_indep_3 done
+valid=True label=p1_indep_3
+To https://github.com/pandeyaby/CONCERTO
+   dddf3ee..f861bbc  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p1_indep_3 2026-10-13T23:18:12+00:00 ===
+=== START p1 safe p1_safe_3 2026-10-13T23:18:13+00:00 ===
+p1 safe p1_safe_3 done
+valid=True label=p1_safe_3
+To https://github.com/pandeyaby/CONCERTO
+   f861bbc..d76c267  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p1_safe_3 2026-10-13T23:28:11+00:00 ===
+=== START p3 gamma p3_gamma_1 2026-10-13T23:28:12+00:00 ===
+p3 gamma p3_gamma_1 done
+valid=True label=p3_gamma_1
+To https://github.com/pandeyaby/CONCERTO
+   d76c267..e687268  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_gamma_1 2026-10-13T23:33:30+00:00 ===
+=== START p3 uncapped p3_uncapped_1 2026-10-13T23:33:31+00:00 ===
+p3 uncapped p3_uncapped_1 done
+valid=True label=p3_uncapped_1
+To https://github.com/pandeyaby/CONCERTO
+   e687268..4d6e99b  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_uncapped_1 2026-10-13T23:39:27+00:00 ===
+=== START p3 cap10 p3_cap10_1 2026-10-13T23:39:28+00:00 ===
+p3 cap10 p3_cap10_1 done
+valid=True label=p3_cap10_1
+To https://github.com/pandeyaby/CONCERTO
+   4d6e99b..c37d1f0  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_cap10_1 2026-10-13T23:45:26+00:00 ===
+=== START p3 gamma p3_gamma_2 2026-10-13T23:45:27+00:00 ===
+p3 gamma p3_gamma_2 done
+valid=True label=p3_gamma_2
+To https://github.com/pandeyaby/CONCERTO
+   c37d1f0..5834eb4  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_gamma_2 2026-10-13T23:51:24+00:00 ===
+=== START p3 uncapped p3_uncapped_2 2026-10-13T23:51:25+00:00 ===
+p3 uncapped p3_uncapped_2 done
+valid=True label=p3_uncapped_2
+To https://github.com/pandeyaby/CONCERTO
+   5834eb4..0f828ff  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_uncapped_2 2026-10-13T23:57:33+00:00 ===
+=== START p3 cap10 p3_cap10_2 2026-10-13T23:57:34+00:00 ===
+p3 cap10 p3_cap10_2 done
+valid=True label=p3_cap10_2
+To https://github.com/pandeyaby/CONCERTO
+   0f828ff..88187cf  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_cap10_2 2026-10-14T00:03:32+00:00 ===
+=== START p3 gamma p3_gamma_3 2026-10-14T00:03:33+00:00 ===
+p3 gamma p3_gamma_3 done
+valid=True label=p3_gamma_3
+To https://github.com/pandeyaby/CONCERTO
+   88187cf..1c4a375  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_gamma_3 2026-10-14T00:09:28+00:00 ===
+=== START p3 uncapped p3_uncapped_3 2026-10-14T00:09:29+00:00 ===
+p3 uncapped p3_uncapped_3 done
+valid=True label=p3_uncapped_3
+To https://github.com/pandeyaby/CONCERTO
+   1c4a375..e9b7530  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_uncapped_3 2026-10-14T00:15:37+00:00 ===
+=== START p3 cap10 p3_cap10_3 2026-10-14T00:15:38+00:00 ===
+p3 cap10 p3_cap10_3 done
+valid=True label=p3_cap10_3
+To https://github.com/pandeyaby/CONCERTO
+   e9b7530..d85eca3  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_cap10_3 2026-10-14T00:21:37+00:00 ===
+{
+ "trials": {
+  "aborted_p1_p1ctl_3": {
+   "valid": false,
+   "dur": 427,
+   "gap": 6,
+   "attain": 0.6996,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.5,
+   "aborted": true
+  },
+  "excluded_p1_indep_2": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6935,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.2,
+   "excluded": true,
+   "exclude_reason": "see runs/excluded_p1_indep_2/EXCLUDED.txt"
+  },
+  "invalid_p1_p1ctl_2": {
+   "valid": false,
+   "dur": 480,
+   "gap": 1823,
+   "attain": 0.6967,
+   "final_replicas": 3,
+   "p99_ms_first120": 168.6
+  },
+  "p1_indep_1": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.2631,
+   "final_replicas": 2,
+   "p99_ms_first120": 314.5
+  },
+  "p1_indep_2": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.2632,
+   "final_replicas": 2,
+   "p99_ms_first120": 316.1
+  },
+  "p1_indep_3": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.2674,
+   "final_replicas": 2,
+   "p99_ms_first120": 315.3
+  },
+  "p1_p1ctl_1": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6981,
+   "final_replicas": 3,
+   "p99_ms_first120": 169.0
+  },
+  "p1_p1ctl_2b": {
+   "valid": false,
+   "dur": 480,
+   "gap": 2405,
+   "attain": 0.7013,
+   "final_replicas": 3,
+   "p99_ms_first120": 175.1
+  },
+  "p1_p1ctl_3": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6813,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.8
+  },
+  "p1_safe_1": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.9998,
+   "final_replicas": 5,
+   "p99_ms_first120": 165.4
+  },
+  "p1_safe_2": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6783,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.7
+  },
+  "p1_safe_3": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.9999,
+   "final_replicas": 5,
+   "p99_ms_first120": 164.2
+  },
+  "p3_cap10_1": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.8879,
+   "max_ejected": 1,
+   "faulty_ejected_end": false
+  },
+  "p3_cap10_2": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9089,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_cap10_3": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9605,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_gamma_1": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9225,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_gamma_2": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9154,
+   "max_ejected": 2,
+   "faulty_ejected_end": true
+  },
+  "p3_gamma_3": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9057,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_uncapped_1": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9225,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_uncapped_2": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.8891,
+   "max_ejected": 10,
+   "faulty_ejected_end": true
+  },
+  "p3_uncapped_3": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.8844,
+   "max_ejected": 10,
+   "faulty_ejected_end": true
+  }
+ },
+ "verdicts": {
+  "G0_informative": "PASS",
+  "G1": "FAIL",
+  "G2": "PASS",
+  "G3": "PASS"
+ }
+}
+To https://github.com/pandeyaby/CONCERTO
+   d85eca3..ffbbf1a  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+RESUME_EXIT:0
+RESUME_SHELL_EXIT:0

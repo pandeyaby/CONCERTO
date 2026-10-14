@@ -2,7 +2,7 @@
 %% IEEE conference submission draft (B1)
 %% STATUS (rev. 2026-10-11): formalism revised to match simulator evidence;
 %% configuration audit completed (audit/mechanisms.csv); simulator results
-%% reported against PREREG.md. Testbed campaign NOT run. Incident catalogue pending.
+%% reported against PREREG.md. Testbed campaigns v2--v4 run. Incident catalogue pending.
 %% Target: AGENT'27 @ ICSE 2027 (8 pp + refs, IEEE, single-blind).
 
 \documentclass[conference]{IEEEtran}
@@ -53,8 +53,8 @@ coordinates provisioning with protection. In pre-registered tests on
 unmodified Kubernetes and Envoy, the trap reproduced in all 9 below-target
 trials across three shedder types and two application shapes (attainment
 0.29--0.50, 2--3 of 5 replicas). All 8 above-target trials escaped (attainment
-$\ge$0.99). Our evidence for an arbitration remedy is negative or
-uninformative so far, and we report it as such. We release the simulator,
+$\ge$0.99). Our evidence for an arbitration remedy is negative,
+inconclusive or marginal so far, and we report it as such. We release the simulator,
 testbed, pre-registrations and raw traces.
 \end{abstract}
 
@@ -147,7 +147,7 @@ budget that made matters worse.
 
 We are explicit about scope. Our central evidence is the audit and pre-registered testbed experiments on
 the observation-coupling trap. Arbitration is discussed only briefly (Section \ref{sec:design}),
-because its evidence so far is negative or uninformative. No claim here concerns
+because its evidence so far is negative, inconclusive or marginal. No claim here concerns
 production systems.
 
 \section{Background}
@@ -549,7 +549,7 @@ controller a counterfactual input, e.g.\ admitted plus shed load for the
 autoscaler. \textbf{P3}: admit a redistributive action only if projected
 $\Gamma<1$. \textbf{P4}: route slow disturbance bands to slow actuators.
 Each is implementable from outside the controllers. \emph{The evidence for it
-is negative or uninformative:}
+is negative, inconclusive or marginal:}
 \begin{itemize}
 \item \textbf{Simulation, full arbiter} (PREREG v1). The arbiter reached
 attainment 0.916 [0.914, 0.917] against 0.993 for a fixed expert retuning
@@ -564,10 +564,34 @@ allocating by severity, so it is not P1 as designed.
 \item \textbf{Testbed, P3} (v3b). One failing endpoint among 10 produced
 about 0.3\% errors and no cascade. All four ejection policies scored 0.997,
 so the test could not discriminate.
+\item \textbf{Testbed, threshold-aware P1} (v4). An external controller
+holds every sidecar trip point above 1.15$\times$ the HPA target and sizes the
+edge budget to ready capacity, scaled by severity. It starts from the trap
+configuration. \emph{Verdicts V1--V4 are inconclusive}: PREREG requires
+three valid trials per arm, and only two P1 trials passed the
+sampling-gap rule (0.698, 0.681). The third trial and its one allowed rerun
+were invalidated by VM suspends (gaps of 1823\,s and 2405\,s). Descriptively, P1
+beat the static trap (0.263, 0.263, 0.267; +0.42) but plateaued at 3 replicas
+of 5, so it would likely have failed V2 (needs $\ge$5). The no-shedding arm
+scored 1.000, 0.678 and 1.000. Its middle trial also stalled at 3 replicas.
+In both stalls, the pods served about 36--37\,req/s each, within the HPA's
+default 10\% tolerance of the 35\,req/s target. Under that reading, the
+autoscaler saw no reason to scale. An INDEP trial contaminated by a leftover
+controller process (0.694) was excluded and rerun cleanly. One aborted
+P1 trial is retained and disclosed.
+\item \textbf{Testbed, cascading pool with dynamic $\Gamma$} (v4). Ten pods of
+mixed capacity at 0.9 load, one faulty. The cascade gate G0 passed: uncapped
+ejection removed all 10 hosts in 2 of 3 trials. The $\Gamma$ controller
+held peak ejections to 1--2 and ejected the faulty host in 3/3 trials (G3
+PASS). It matched a static 10\% cap (G2 PASS; 0.915 vs.\ 0.919). It did not
+reach the pre-registered goodput margin over uncapped ejection (G1 FAIL; 0.915
+vs.\ 0.899, needed +0.05).
 \end{itemize}
-The lesson for design is that a budget must respect the threshold ordering
-it protects. A threshold-aware P1 and a pool that actually cascades are
-pre-registered as PREREG v4. Their results will be reported whatever they are.
+In short, a gate that prevents mass ejection is easy to build, but here it bought
+little goodput. A threshold-aware budget avoids the stand-in's collapse, but it did not
+restore full provisioning and lacks a valid pre-registered verdict. A budget
+must respect not only the shedder's threshold ordering but also the
+autoscaler's tolerance band.
 
 \section{Related Work}
 \label{sec:related}
@@ -622,12 +646,15 @@ on real components, and an arbiter evaluated against an honest baseline.
 \textbf{Construct validity.} Attainment (2xx over offered) and replica count
 are proxies for user-facing objectives. Envoy's \texttt{local\_ratelimit} per
 pod stands in for a capacity-relative shedder. The adaptive-concurrency
-variant is part of the pending campaign.
+shedder was pinned to a fixed limit.
 
 \textbf{Internal validity.} Thresholds were pre-registered
 (\texttt{PREREG.md}) before each run. Trials with sampling gaps above 10\,s or
-truncated load phases are discarded and rerun, and we report the one such
-rerun. The box hosting the testbed paused and was once rolled back to a
+truncated load phases are discarded and rerun, and every such
+trial is reported. In the v4 campaign, samplers switched mid-campaign from
+wall-clock to monotonic timestamps after VM suspends. Later trials therefore
+cannot detect a suspend through the gap rule. Their load durations (from
+vegeta's wall clock) were complete. The box hosting the testbed paused and was once rolled back to a
 snapshot; the gap check exists for this reason. The $\Gamma$ controller
 includes a disclosed exception that allows ejecting a host with under 10\%
 success.
@@ -636,8 +663,7 @@ success.
 mechanisms at a time. Production fleets are larger, heterogeneous, and
 configured differently. The simulator covers scale only in a model sense.
 
-\textbf{Conclusion validity.} Testbed trials number two or three per arm. The effects are large and consistent (attainment
-0.375 vs.\ 1.000 in every trial), but small $n$ precludes fine-grained
+\textbf{Conclusion validity.} Testbed trials number two or three per arm. The effects are large and consistent (below-target attainment $\le$0.50 vs.\ $\ge$0.99 above target), but small $n$ precludes fine-grained
 estimates. Simulator CIs are normal approximations over 20--30 seeds.
 
 \textbf{Negative results.} The full arbiter lost to expert retuning in
@@ -646,7 +672,7 @@ simulation (RQ2/RQ3). We report this rather than tune the baseline down.
 \section{Artifact Availability}
 The simulator, audit table with per-cell source URLs, testbed manifests,
 trial scripts, raw replica traces, analysis code, and the pre-registrations
-(\texttt{PREREG.md} v1--v3, committed before the corresponding runs) are public at
+(\texttt{PREREG.md} v1--v4, committed before the corresponding runs) are public at
 \url{https://github.com/pandeyaby/CONCERTO}. The testbed is reproducible on a
 single VM at no cost (\texttt{testbed/setup.sh}).
 
@@ -658,8 +684,10 @@ below-target trial, across three shedders and two application shapes, and
 reversing the ordering escaped it every time. No audited configuration surface
 would have warned the operator. Remedies are harder. A plain retuning beat our
 simulated arbiter, and a naive shared budget recreated the trap it was meant
-to prevent. We therefore offer a tested account of failure and a method for
-finding such failures, with arbitration as pre-registered future work.
+to prevent. A threshold-aware budget recovered part of the loss, but its test
+was inconclusive. A $\Gamma$ gate prevented mass ejection without a
+pre-registered goodput gain. We therefore offer a tested account of failure and a method for
+finding such failures, with arbitration as open work.
 
 \begin{thebibliography}{99}
 \bibitem{durham1993} W. C. Durham, ``Constrained control allocation,'' \emph{Journal of Guidance, Control, and Dynamics}, vol. 16, no. 4, pp. 717--725, 1993.

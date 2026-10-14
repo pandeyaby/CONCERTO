@@ -121,3 +121,188 @@ branch 'v4-campaign' set up to track 'origin/v4-campaign'.
 === START p3 cap10 p3_cap10_3 2026-10-14T00:15:38+00:00 ===
 p3 cap10 p3_cap10_3 done
 valid=True label=p3_cap10_3
+To https://github.com/pandeyaby/CONCERTO
+   e9b7530..d85eca3  HEAD -> v4-campaign
+branch 'v4-campaign' set up to track 'origin/v4-campaign'.
+=== DONE p3_cap10_3 2026-10-14T00:21:37+00:00 ===
+{
+ "trials": {
+  "aborted_p1_p1ctl_3": {
+   "valid": false,
+   "dur": 427,
+   "gap": 6,
+   "attain": 0.6996,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.5,
+   "aborted": true
+  },
+  "excluded_p1_indep_2": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6935,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.2,
+   "excluded": true,
+   "exclude_reason": "see runs/excluded_p1_indep_2/EXCLUDED.txt"
+  },
+  "invalid_p1_p1ctl_2": {
+   "valid": false,
+   "dur": 480,
+   "gap": 1823,
+   "attain": 0.6967,
+   "final_replicas": 3,
+   "p99_ms_first120": 168.6
+  },
+  "p1_indep_1": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.2631,
+   "final_replicas": 2,
+   "p99_ms_first120": 314.5
+  },
+  "p1_indep_2": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.2632,
+   "final_replicas": 2,
+   "p99_ms_first120": 316.1
+  },
+  "p1_indep_3": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.2674,
+   "final_replicas": 2,
+   "p99_ms_first120": 315.3
+  },
+  "p1_p1ctl_1": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6981,
+   "final_replicas": 3,
+   "p99_ms_first120": 169.0
+  },
+  "p1_p1ctl_2b": {
+   "valid": false,
+   "dur": 480,
+   "gap": 2405,
+   "attain": 0.7013,
+   "final_replicas": 3,
+   "p99_ms_first120": 175.1
+  },
+  "p1_p1ctl_3": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6813,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.8
+  },
+  "p1_safe_1": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.9998,
+   "final_replicas": 5,
+   "p99_ms_first120": 165.4
+  },
+  "p1_safe_2": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.6783,
+   "final_replicas": 3,
+   "p99_ms_first120": 162.7
+  },
+  "p1_safe_3": {
+   "valid": true,
+   "dur": 480,
+   "gap": 6,
+   "attain": 0.9999,
+   "final_replicas": 5,
+   "p99_ms_first120": 164.2
+  },
+  "p3_cap10_1": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.8879,
+   "max_ejected": 1,
+   "faulty_ejected_end": false
+  },
+  "p3_cap10_2": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9089,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_cap10_3": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9605,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_gamma_1": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9225,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_gamma_2": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9154,
+   "max_ejected": 2,
+   "faulty_ejected_end": true
+  },
+  "p3_gamma_3": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9057,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_uncapped_1": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.9225,
+   "max_ejected": 1,
+   "faulty_ejected_end": true
+  },
+  "p3_uncapped_2": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.8891,
+   "max_ejected": 10,
+   "faulty_ejected_end": true
+  },
+  "p3_uncapped_3": {
+   "valid": true,
+   "dur": 300,
+   "gap": 5,
+   "goodput": 0.8844,
+   "max_ejected": 10,
+   "faulty_ejected_end": true
+  }
+ },
+ "verdicts": {
+  "G0_informative": "PASS",
+  "G1": "FAIL",
+  "G2": "PASS",
+  "G3": "PASS"
+ }
+}

@@ -3,7 +3,9 @@
 # Writes runs/<label>/. Requires setup.sh (k3s, prometheus + adapter, vegeta).
 set -e; export KUBECONFIG=/etc/rancher/k3s/k3s.yaml; cd "$(dirname "$0")"
 EXP=$1; ARM=$2; L=$3; D=runs/$L; rm -rf "$D"; mkdir -p "$D"; CTL=""
-sampler() { ( while true; do r=$(timeout 8 kubectl -n $1 get deploy app -o jsonpath='{.status.replicas}' 2>/dev/null) && [ -n "$r" ] && echo "$(date +%s),$r"; sleep 5; done ) > "$D/replicas.csv" & SP=$!; }
+# Sample timestamps are monotonic seconds since sampler start (not wall clock).
+# Wall-clock gaps falsely invalidate trials when the VM suspends mid-run; see NOTES.md.
+sampler() { python3 ./sample_replicas.py "$1" > "$D/replicas.csv" & SP=$!; }
 if [ "$EXP" = p1 ]; then
   NS=v4p1; case $ARM in indep|p1ctl) SIDE=2; EDGE=8;; safe) SIDE=6; EDGE=1000;; *) exit 2;; esac
   kubectl delete ns $NS --ignore-not-found --wait=true >/dev/null 2>&1; kubectl create ns $NS >/dev/null
@@ -24,10 +26,15 @@ else
   F=$(echo $IPS | tr ' ' '\n' | sort | head -1); curl -s -m2 http://$F:9000/fault >/dev/null; echo "$F" > "$D/faulty.txt"
   RATE=$(python3 -c "print(int(0.90*$TOT))"); echo $RATE > "$D/rate.txt"
   [ $ARM = gamma ] && { python3 gamma_ctl.py > "$D/ctl.log" 2>&1 & CTL=$!; }
-  ( while true; do echo "$(date +%s),$(curl -s -m2 http://127.0.0.1:30903/clusters | grep -c failed_outlier_check)"; sleep 5; done ) > "$D/ejected.csv" & SP=$!
+  python3 ./sample_ejected.py > "$D/ejected.csv" & SP=$!
   echo "GET http://127.0.0.1:30380/" | vegeta attack -keepalive=false -rate=$RATE -duration=300s -timeout=10s > "$D/v2.bin"
   curl -s http://127.0.0.1:30903/stats | grep -E "outlier_detection\.(ejections_enforced_total|ejections_overflow)" > "$D/od_stats.txt" || true
   curl -s http://127.0.0.1:30903/clusters | grep -E "health_flags" > "$D/clusters_end.txt" || true
 fi
 kill $SP 2>/dev/null || true; [ -n "$CTL" ] && kill $CTL 2>/dev/null || true
+# Belt-and-suspenders: drop any leftover controllers/samplers from a prior crashed trial (NOTES #6/#7).
+pkill -f '[p]1_ctl.py' 2>/dev/null || true
+pkill -f '[g]amma_ctl.py' 2>/dev/null || true
+pkill -f '[s]ample_replicas.py' 2>/dev/null || true
+pkill -f '[s]ample_ejected.py' 2>/dev/null || true
 echo "$EXP $ARM $L done"

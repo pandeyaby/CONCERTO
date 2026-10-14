@@ -23,11 +23,23 @@ def a_p3(d):
             "faulty_ejected_end": f"{fault}:9000::health_flags::/failed_outlier_check" in endc}
 def main():
     R = {}
+    def strip_prefix(k):
+        for p in ("invalid_", "excluded_", "aborted_"):
+            if k.startswith(p): return k[len(p):]
+        return k
     for k in sorted(os.listdir("runs")):
         d = f"runs/{k}"
-        try: R[k] = a_p1(d) if k.startswith("p1_") else a_p3(d)
+        if not os.path.isdir(d): continue
+        base = strip_prefix(k)
+        try: R[k] = a_p1(d) if base.startswith("p1_") else a_p3(d)
         except Exception as e: R[k] = {"valid": False, "error": str(e)[:80]}
-    V = {k: v for k, v in R.items() if v.get("valid")}
+        if k.startswith("excluded_"):
+            R[k] = {**R[k], "excluded": True, "exclude_reason": "see runs/%s/EXCLUDED.txt" % k}
+        if k.startswith("aborted_"):
+            R[k] = {**R[k], "aborted": True}
+    # Verdict arms: valid trials only; never invalid_/excluded_/aborted_.
+    skip = ("invalid_", "excluded_", "aborted_")
+    V = {k: v for k, v in R.items() if v.get("valid") and not k.startswith(skip)}
     arm = lambda p: [v for k, v in V.items() if k.startswith(p + "_")]
     m = lambda p, f: st.mean(x[f] for x in arm(p)) if arm(p) else None
     out = {"trials": R}; ver = {}
@@ -44,6 +56,11 @@ def main():
             ver["G1"] = m("p3_gamma", "goodput") >= m("p3_uncapped", "goodput") + 0.05
             ver["G2"] = m("p3_gamma", "goodput") >= m("p3_cap10", "goodput") - 0.02
             ver["G3"] = sum(x["faulty_ejected_end"] for x in arm("p3_gamma")) >= 2
+        else:
+            # PREREG v4: if G0 fails, G1–G3 are INCONCLUSIVE (not PASS/FAIL).
+            ver["G1"] = "INCONCLUSIVE"
+            ver["G2"] = "INCONCLUSIVE"
+            ver["G3"] = "INCONCLUSIVE"
     out["verdicts"] = {k: ("PASS" if v else "FAIL") if not isinstance(v, str) else v for k, v in ver.items()}
     print(json.dumps(out, indent=1)); json.dump(out, open("results_v4.json", "w"), indent=1)
 if __name__ == "__main__": main()

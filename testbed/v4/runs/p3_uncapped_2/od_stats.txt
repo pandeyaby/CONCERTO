@@ -1,0 +1,2 @@
+cluster.app.outlier_detection.ejections_enforced_total: 19
+cluster.app.outlier_detection.ejections_overflow: 0

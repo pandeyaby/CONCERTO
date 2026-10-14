@@ -2,7 +2,7 @@
 %% IEEE conference submission draft (B1)
 %% STATUS (rev. 2026-10-11): formalism revised to match simulator evidence;
 %% configuration audit completed (audit/mechanisms.csv); simulator results
-%% reported against PREREG.md. Testbed campaigns v2--v4 run. Incident catalogue pending.
+%% reported against PREREG.md. Testbed campaigns v2--v5 run (v5: P1 confirmed, V4 fail). Incident catalogue pending.
 %% Target: AGENT'27 @ ICSE 2027 (8 pp + refs, IEEE, single-blind).
 
 \documentclass[conference]{IEEEtran}
@@ -53,8 +53,12 @@ coordinates provisioning with protection. In pre-registered tests on
 unmodified Kubernetes and Envoy, the trap reproduced in all 9 below-target
 trials across three shedder types and two application shapes (attainment
 0.29--0.50, 2--3 of 5 replicas). All 8 above-target trials escaped (attainment
-$\ge$0.99). Our evidence for an arbitration remedy is negative,
-inconclusive or marginal so far, and we report it as such. We release the simulator,
+$\ge$0.99). A threshold-aware shared authority budget (P1), started from
+the trap configuration, passed its pre-registered test ($n=5$ per arm):
+attainment 0.994 vs.\ 0.269 for independent agents and 1.000 for a
+no-shedding reference, with every trial reaching 6 replicas. Its
+pre-registered latency claim failed, an earlier run was inconclusive, and
+other remedies were negative or marginal; we report all of it. We release the simulator,
 testbed, pre-registrations and raw traces.
 \end{abstract}
 
@@ -140,14 +144,19 @@ on unmodified components.
 \item \textbf{Reproduction of the trap} on Kubernetes and Envoy (Section
 \ref{sec:testbed}): 9/9 below-target trials under-provisioned and 8/8
 above-target trials escaped, across three shedders and two application shapes.
-\item \textbf{Honest negative evidence on arbitration} (Section
-\ref{sec:design}), including two failed hypotheses in simulation and a testbed
-budget that made matters worse.
+\item \textbf{A pre-registered test of a remedy} (Section
+\ref{sec:p1}): a threshold-aware shared authority budget escapes the trap
+(attainment 0.994 vs.\ 0.269, $n=5$ per arm, one testbed), though its
+latency claim failed.
+\item \textbf{Negative evidence on arbitration} (Section
+\ref{sec:design}), including two failed hypotheses in simulation, a testbed
+budget that made matters worse, and an inconclusive first run of P1.
 \end{enumerate}
 
 We are explicit about scope. Our central evidence is the audit and pre-registered testbed experiments on
-the observation-coupling trap. Arbitration is discussed only briefly (Section \ref{sec:design}),
-because its evidence so far is negative, inconclusive or marginal. No claim here concerns
+the observation-coupling trap. Arbitration is discussed briefly (Section \ref{sec:design}). One
+principle, P1, has a positive pre-registered result on one testbed; the rest
+of the evidence is negative, inconclusive or marginal. No claim here concerns
 production systems.
 
 \section{Background}
@@ -548,8 +557,9 @@ fraction is bounded by construction \cite{durham1993}. \textbf{P2}: serve each
 controller a counterfactual input, e.g.\ admitted plus shed load for the
 autoscaler. \textbf{P3}: admit a redistributive action only if projected
 $\Gamma<1$. \textbf{P4}: route slow disturbance bands to slow actuators.
-Each is implementable from outside the controllers. \emph{The evidence for it
-is negative, inconclusive or marginal:}
+Each is implementable from outside the controllers. Apart from the
+pre-registered P1 test in Section~\ref{sec:p1}, \emph{the evidence is
+negative, inconclusive or marginal:}
 \begin{itemize}
 \item \textbf{Simulation, full arbiter} (PREREG v1). The arbiter reached
 attainment 0.916 [0.914, 0.917] against 0.993 for a fixed expert retuning
@@ -564,7 +574,7 @@ allocating by severity, so it is not P1 as designed.
 \item \textbf{Testbed, P3} (v3b). One failing endpoint among 10 produced
 about 0.3\% errors and no cascade. All four ejection policies scored 0.997,
 so the test could not discriminate.
-\item \textbf{Testbed, threshold-aware P1} (v4). An external controller
+\item \textbf{Testbed, threshold-aware P1, first run} (v4). An external controller
 holds every sidecar trip point above 1.15$\times$ the HPA target and sizes the
 edge budget to ready capacity, scaled by severity. It starts from the trap
 configuration. \emph{Verdicts V1--V4 are inconclusive}: PREREG requires
@@ -576,7 +586,8 @@ of 5, so it would likely have failed V2 (needs $\ge$5). The no-shedding arm
 scored 1.000, 0.678 and 1.000. Its middle trial also stalled at 3 replicas.
 In both stalls, the pods served about 36--37\,req/s each, within the HPA's
 default 10\% tolerance of the 35\,req/s target. Under that reading, the
-autoscaler saw no reason to scale. An INDEP trial contaminated by a leftover
+autoscaler saw no reason to scale: the plant, not P1, was miscalibrated.
+Section~\ref{sec:p1} reports the corrected rerun. An INDEP trial contaminated by a leftover
 controller process (0.694) was excluded and rerun cleanly. One aborted
 P1 trial is retained and disclosed.
 \item \textbf{Testbed, cascading pool with dynamic $\Gamma$} (v4). Ten pods of
@@ -588,10 +599,53 @@ reach the pre-registered goodput margin over uncapped ejection (G1 FAIL; 0.915
 vs.\ 0.899, needed +0.05).
 \end{itemize}
 In short, a gate that prevents mass ejection is easy to build, but here it bought
-little goodput. A threshold-aware budget avoids the stand-in's collapse, but it did not
-restore full provisioning and lacks a valid pre-registered verdict. A budget
-must respect not only the shedder's threshold ordering but also the
-autoscaler's tolerance band.
+little goodput. A budget must respect not only the shedder's threshold ordering but also
+the autoscaler's tolerance band; once the testbed did, the threshold-aware
+budget worked (Section~\ref{sec:p1}).
+
+\subsection{A Confirmed Remedy: Threshold-Aware Budget (P1, v5)}
+\label{sec:p1}
+\textbf{Design.} PREREG v5 was committed before any v5 trial. It fixes the
+v4 calibration fault: from v4 data, saturated pods served about 36.8\,req/s,
+so the HPA target was lowered to 25\,req/s per pod (a saturated pod then
+reads $\ge$1.47$\times$ target, well outside the 10\% band). Load steps from
+50 to 160\,req/s for 480\,s. INDEP is the trap: sidecar concurrency cap 2
+(trips near 18\,req/s per pod, below target). P1CTL starts from INDEP; the
+controller raises each sidecar cap so no sidecar trips below
+1.15$\times$ target, and sizes the edge budget to ready capacity scaled by
+severity. SAFE (no effective shedding) is the reference. Five interleaved
+trials per arm, wall-clock gap rule ($\le$10\,s), at most two reruns per
+label. A gate W0 requires that SAFE actually scales ($\ge$4/5 trials at
+$\ge$6 replicas). V1: P1CTL $\ge$ INDEP $+0.25$. V2: every P1CTL trial ends
+with $\ge$5 replicas. V3: P1CTL $\ge$ SAFE $-0.05$. V4 (reported separately):
+P1CTL p99 latency in the first 120\,s of the step $\le 0.8\times$ SAFE.
+
+\begin{table}[t]
+\caption{P1 confirmatory run (PREREG v5, $n=5$ per arm, final 240\,s; p99 over first 120\,s of the step).}
+\label{tab:p1}
+\centering\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Arm & $n$ & Attain.\ (mean, range) & Repl. & p99 (ms) \\
+\midrule
+INDEP (trap) & 5 & 0.269 (0.267--0.272) & 2 (all) & 316.7 \\
+P1CTL & 5 & 0.994 (0.993--0.995) & 6 (all) & 151.7 \\
+SAFE & 5 & 1.000 (1.000--1.000) & 6 (all) & 141.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Result} (Table~\ref{tab:p1}). All 15 trials were valid on the first
+attempt (maximum sample gap 6\,s); there were no reruns, exclusions or
+amendments. W0 PASS (5/5 SAFE trials at 6 replicas). V1 PASS (0.994 vs.\
+threshold 0.519). V2 PASS (all five P1CTL trials at 6 replicas). V3 PASS
+(0.994 vs.\ threshold 0.950). P1 is therefore supported on this testbed by
+its pre-registered criterion. \textbf{V4 FAIL}: P1CTL p99 was 151.7\,ms,
+above $0.8\times$ SAFE's 141.8\,ms $=113.5$\,ms. P1 recovers provisioning
+and goodput but does not beat the no-shedding reference on early latency,
+which is what protection is supposed to buy. The result is one plant, one
+node, one load shape and $n=5$; it shows that a threshold-aware budget can
+escape the trap, not that it generalizes.
 
 \section{Related Work}
 \label{sec:related}
@@ -651,7 +705,8 @@ shedder was pinned to a fixed limit.
 \textbf{Internal validity.} Thresholds were pre-registered
 (\texttt{PREREG.md}) before each run. Trials with sampling gaps above 10\,s or
 truncated load phases are discarded and rerun, and every such
-trial is reported. In the v4 campaign, samplers switched mid-campaign from
+trial is reported. The v5 P1 run had no invalid trials and used
+wall-clock gap checks throughout. In the v4 campaign, samplers switched mid-campaign from
 wall-clock to monotonic timestamps after VM suspends. Later trials therefore
 cannot detect a suspend through the gap rule. Their load durations (from
 vegeta's wall clock) were complete. The box hosting the testbed paused and was once rolled back to a
@@ -663,7 +718,10 @@ success.
 mechanisms at a time. Production fleets are larger, heterogeneous, and
 configured differently. The simulator covers scale only in a model sense.
 
-\textbf{Conclusion validity.} Testbed trials number two or three per arm. The effects are large and consistent (below-target attainment $\le$0.50 vs.\ $\ge$0.99 above target), but small $n$ precludes fine-grained
+\textbf{Conclusion validity.} Testbed trials number two or three per arm
+(five in the v5 P1 run). The v5 HPA target was chosen from v4 throughput
+data; this was disclosed and pre-registered before any v5 trial, but the
+confirmation rests on that calibration. The effects are large and consistent (below-target attainment $\le$0.50 vs.\ $\ge$0.99 above target), but small $n$ precludes fine-grained
 estimates. Simulator CIs are normal approximations over 20--30 seeds.
 
 \textbf{Negative results.} The full arbiter lost to expert retuning in
@@ -672,7 +730,7 @@ simulation (RQ2/RQ3). We report this rather than tune the baseline down.
 \section{Artifact Availability}
 The simulator, audit table with per-cell source URLs, testbed manifests,
 trial scripts, raw replica traces, analysis code, and the pre-registrations
-(\texttt{PREREG.md} v1--v4, committed before the corresponding runs) are public at
+(\texttt{PREREG.md} v1--v5, committed before the corresponding runs) are public at
 \url{https://github.com/pandeyaby/CONCERTO}. The testbed is reproducible on a
 single VM at no cost (\texttt{testbed/setup.sh}).
 
@@ -684,10 +742,13 @@ below-target trial, across three shedders and two application shapes, and
 reversing the ordering escaped it every time. No audited configuration surface
 would have warned the operator. Remedies are harder. A plain retuning beat our
 simulated arbiter, and a naive shared budget recreated the trap it was meant
-to prevent. A threshold-aware budget recovered part of the loss, but its test
-was inconclusive. A $\Gamma$ gate prevented mass ejection without a
-pre-registered goodput gain. We therefore offer a tested account of failure and a method for
-finding such failures, with arbitration as open work.
+to prevent. A threshold-aware shared budget, once the testbed respected the
+autoscaler's tolerance band, escaped the trap in its pre-registered test
+(0.994 vs.\ 0.269, all trials at 6 replicas), though not with the latency
+benefit we predicted, and on a single testbed with $n=5$. A $\Gamma$ gate
+prevented mass ejection without a pre-registered goodput gain. We therefore
+offer a tested account of failure, a method for finding such failures, and
+one remedy that worked under test, with general arbitration as open work.
 
 \begin{thebibliography}{99}
 \bibitem{durham1993} W. C. Durham, ``Constrained control allocation,'' \emph{Journal of Guidance, Control, and Dynamics}, vol. 16, no. 4, pp. 717--725, 1993.

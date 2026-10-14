@@ -179,3 +179,52 @@ The P1 smoke (not a trial) showed that `max_pending_requests: 0` rejects every r
 request through the pending queue. Both shedders now use `max_pending_requests: 1`. Hypotheses, arms and thresholds
 are unchanged. Smoke results, for disclosure only: 2 pods at 100 req/s served 41% under the static trap caps and 69%
 with p1_ctl.py running. The controller wrote edge cap 11 and sidecar cap 4 through the runtime API as designed.
+
+# Pre-registration v5: properly powered P1 rerun (committed before any v5 trial; v1–v4 above are unchanged)
+Scope: P1 only (threshold-aware shared authority budget). Code: `testbed/v5/` (p1.yaml.tpl, p1_ctl.py, trial.sh,
+run_all.sh, analyze.py). Results go under `testbed/v5/runs/` and `testbed/v5/results_v5.json`.
+
+## Why v5: real per-pod throughput (derived from v4 data, before any v5 trial)
+v4 P1 was INCONCLUSIVE (2 valid P1CTL trials). In every v4 P1 trial that ended saturated at 3 replicas, final-240 s
+goodput was 0.6813–0.7013 of 160 req/s (P1CTL 0.6981, 0.6813, invalid 0.6967/0.7013, aborted 0.6996; SAFE trial
+p1_safe_2 0.6783; contaminated INDEP 0.6935). Goodput × 160 / 3 gives a **measured per-pod throughput of 36.2–37.4 req/s,
+mean ≈ 36.8 req/s**, not the nominal 50 (4 workers × 80 ms; the gap is per-request Python/Envoy/`keepalive=false`
+connection overhead). The v4 HPA target was 35 req/s/pod: at 3 saturated pods the HPA ratio is 36.8/35 ≈ 1.05, which is
+inside the HPA's default 10 % tolerance, so the HPA never scaled. That is why P1CTL and p1_safe_2 got stuck at 3. The v4
+design was underpowered/miscalibrated. This is a plant calibration fault, not evidence about P1.
+
+## Parameters (changes from v4 V in bold; everything else is identical to v4 V + amendment A1)
+- Plant: same v4 P1 plant (pods nominally 50 req/s, measured ≈ 36.8; sidecar and edge Envoy concurrency shedders with
+  `max_pending_requests: 1`; HPA on per-pod 2xx `envoy_ok_rps`, 2–8 replicas). Namespace `v5p1`.
+- **HPA target 25 req/s/pod** (= 68 % of the measured 36.8). A saturated pod then gives ratio ≥ 1.47 ≫ 1.10 tolerance.
+  Needed replicas at 160 req/s: ceil(160/25) = 7 (≤ max 8).
+- Load: unchanged. 50 req/s for 60 s, then 160 req/s for 480 s, open loop, `keepalive=false`.
+- INDEP: sidecar cap 2 (trips at ≈ 2/0.109 ≈ 18 req/s/pod, below the 25 target, so it is still the trap), edge cap 8.
+- P1CTL: starts from INDEP. p1_ctl.py with **TARGET = 25, POD_CAP = 36.8 (measured), SVC = W/POD_CAP = 0.109 s**, M = 0.15,
+  W = 4. Threshold-aware rule (unchanged form): sidecar cap = max(W, ceil((1+M)·TARGET·SVC)) = max(4, ceil(3.13)) = **4**,
+  so no sidecar trips below 1.15 × target (4/0.109 ≈ 36.7 req/s ≥ 28.75). Edge cap = ceil(n_ready·POD_CAP·SVC·(1+0.10+0.20·(1−s))).
+- SAFE: sidecar cap 6, edge cap 1000 (unchanged).
+
+## Validity and harness
+- Valid iff load phase ≥ 470 s and max replica-sample gap ≤ 10 s, with the gap measured on **wall-clock** timestamps
+  (`date +%s`). The v4 mid-campaign switch to monotonic time is not used. A VM suspend makes a trial invalid, which is right
+  for a control-loop experiment, because the HPA/controller clocks also stall.
+- **Cleanup between trials:** trial.sh kills any `p1_ctl.py`, `vegeta` and sampler processes before and after each trial and
+  aborts (exit 3) if any survive. The namespace is deleted and recreated per trial (as in v4). This prevents the orphan
+  controller contamination seen in v4 (`excluded_p1_indep_2`).
+- **N = 5 trials per arm**, interleaved p1ctl, indep, safe × 5.
+- **Rerun policy (fixed now):** an invalid trial is renamed `invalid_<label>` and rerun as `<label>b`, then `<label>c` at most.
+  Every invalid trial is reported. No other exclusions. Any trial with harness contamination is reported, not silently dropped.
+  If any arm has < 5 valid trials, all of V1–V4 are INCONCLUSIVE.
+- setup.sh fix (v4 NOTES item 4, never landed on main): capture `TESTBED_DIR` before `cd /tmp`, and the adapter install is
+  no longer `|| true` so a failure is visible. Not a design change.
+
+## Hypotheses (final 240 s unless noted; same thresholds as v4 V)
+- W0 (informativeness gate, new): ≥ 4 of 5 SAFE trials end with ≥ 6 replicas. If W0 fails, the plant still doesn't scale
+  and V1–V4 are INCONCLUSIVE.
+- V1: P1CTL mean attainment ≥ INDEP mean + 0.25.
+- V2: every valid P1CTL trial ends with ≥ 5 replicas.
+- V3: P1CTL mean attainment ≥ SAFE mean − 0.05.
+- V4 (reported separately): P1CTL mean p99 2xx latency in the first 120 s of the 160 req/s phase ≤ 0.8 × SAFE.
+P1 is "supported on the testbed" only if W0 and V1–V3 all pass. Any deviation during the campaign is recorded as a
+numbered, disclosed amendment (v5-A1, …) appended below this section; v1–v5 text is never edited.

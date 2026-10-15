@@ -3,8 +3,8 @@
 %% STATUS (rev. 2026-10-14): formalism matches simulator evidence; configuration
 %% audit completed (audit/mechanisms.csv); simulator results reported against
 %% PREREG.md. Testbed campaigns v2--v6 run (v5: P1 confirmed on a step load;
-%% v6: P1 generalizes to a ramp load; V4 latency fails in both). The incident
-%% catalogue is described as method only in the "Incident catalogue" subsection (not yet compiled; the text says so).
+%% v6: P1 generalizes to a ramp load; V4 latency fails in both). Incident
+%% catalogue compiled 2026-10-15 (audit/incidents.csv, audit/INCIDENTS.md).
 %% Target: AGENT'27 @ ICSE 2027 (8 pp + refs, IEEE, single-blind).
 
 \documentclass[conference]{IEEEtran}
@@ -449,14 +449,57 @@ most writeups lack the detail needed to diagnose a controller interaction,
 so any rate computed over published incidents would be an artifact of
 disclosure policy rather than a property of systems.
 
-Method: rather than inherit a third-party curated list, whose maintenance we
-cannot depend on, we index primary sources directly. We search vendor
-incident archives from major cloud and infrastructure providers, apply stated
-inclusion criteria, and code each admitted incident against the three
-channels of Section \ref{sec:taxonomy}. Both authors will code independently and
-report agreement. This catalogue is not yet compiled. The resulting index, with inclusion criteria and per
-incident coding, is released as an artifact so that the catalogue does not
-inherit our own maintenance either.
+Method: we index primary sources directly rather than inherit a curated
+list. We screened the full AWS post-event summary index, entries of the
+\texttt{danluu/post-mortems} list matching mechanism keywords, postmortems
+from Google Cloud, Azure, Cloudflare, GitHub, Slack, Discord, Roblox, Fastly
+and Stripe, and a keyword web search. An incident is included if the
+operator's own writeup names two or more distinct automated mechanisms
+(autoscaling, shedding or rate limiting, admission limits, retries, circuit
+breaking, health checks or ejection, failover or re-replication) and states
+that one's action changed the load, capacity, serving set or signal of
+another, causing or worsening the incident. Manual mitigations, interaction
+only through a code defect, and functions of one controller do not count.
+One author coded every candidate twice (full text; then evidence quotes
+only, first codes hidden). This is single-coder test-retest, not
+inter-rater reliability.
+
+\textbf{Results.} Of 45 candidates, 9 met the criteria in both passes
+(Table~\ref{tab:incidents}), 2 were borderline and 34 were excluded, 27 of
+them because only one automated mechanism was in the causal chain. Decision
+agreement was 43/45 ($\kappa=0.87$); the primary channel agreed for 8 of the
+9. Topological coupling (retry amplification, failover or re-replication
+moving load) appears in all nine. Actuation coupling appears once:
+health-check replacement and autoscaling together overloaded Slack's
+provisioning service. Observation coupling is stated once: at Auth0,
+retry-inflated in-flight work drove a utilization autoscaler from 37 to 100
+nodes, which overloaded the database. GitHub's August 2026 report is
+consistent with it (an autoscaler blind to a saturated sidecar concurrency
+limit) but does not state masking. \emph{No screened postmortem documents the
+threshold-ordering trap itself.} Codebook, exclusions and verbatim evidence
+are in \texttt{audit/INCIDENTS.md} and \texttt{audit/incidents.csv}.
+
+\begin{table}[t]
+\caption{Included incidents (both coding passes). Channels: A actuation, O
+observation, T topological; ``/'' separates pass~1 / pass~2 where they differ.}
+\label{tab:incidents}
+\centering\footnotesize
+\begin{tabular}{@{}lp{3.8cm}l@{}}
+\toprule
+Operator, date & Interacting mechanisms & Ch. \\
+\midrule
+AWS 2011 \cite{incaws2011} & EBS re-mirroring; long API timeouts & T \\
+AWS 2014 \cite{incaws2014} & failure-detector de-registration; timeout, retry, self-removal & T \\
+Google/Niantic 2016 \cite{srewb2018} & load-balancer retries; client retries & T \\
+Slack 2021 \cite{incslack2021} & health-check replacement; autoscaler & A,T \\
+Auth0 2021 \cite{incauth02021} & retries; utilization autoscaler & O,T / T,O \\
+AWS 2021 \cite{incaws2021} & automated scaling; client retries & T \\
+AWS 2025 \cite{incaws2025} & health checks; automatic AZ DNS failover & T \\
+Discord 2026 \cite{incdiscord2026} & reconnects; session rate limit; ring failover & T \\
+GitHub 2026 \cite{incgithub2026} & sidecar concurrency limit; autoscaler; retries & T,O / T \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Practitioner literature}
 
@@ -465,9 +508,15 @@ the canonical operational literature. The Google SRE treatment of cascading
 failures describes overload propagation and the role of retries in
 amplifying it \cite{sre2016}. The Amazon Builders' Library treats retry
 amplification and load shedding as system-level concerns rather than local
-ones \cite{buildersretry,buildersshed}. We cite this literature as evidence
-that the phenomena are recognized, and position our contribution as supplying
-the model and the remedy that it does not.
+ones \cite{buildersretry,buildersshed}. The SRE Workbook goes furthest: in
+a fictional case study, shedding makes a region look efficient to a
+utilization-aware load balancer, and the chapter advises setting thresholds
+so that a system autoscales before shedding engages \cite{srewb2018}. That
+advice is the threshold-ordering remedy of Corollary~\ref{cor:detune}. We
+cite this literature as evidence that the phenomena are recognized; our
+contribution is the model, the audit, pre-registered reproduction on
+unmodified components, and a tested controller (P1) that enforces the
+ordering from outside the agents.
 
 \section{Testing Method}
 \label{sec:method}
@@ -811,6 +860,15 @@ one remedy that worked under test, with general arbitration as open work.
 \bibitem{breakwater2020} I. Cho, A. Saeed, J. Fried, S. J. Park, M. Alizadeh, and A. Belay, ``Overload control for $\mu$s-scale RPCs with Breakwater,'' in \emph{Proc. USENIX OSDI}, 2020.
 \bibitem{bronson2021} N. Bronson, A. Aghayev, A. Charapko, and T. Zhu, ``Metastable failures in distributed systems,'' in \emph{Proc. HotOS}, 2021, doi:10.1145/3458336.3465286.
 \bibitem{huang2022} L. Huang et al., ``Metastable failures in the wild,'' in \emph{Proc. USENIX OSDI}, 2022.
+\bibitem{srewb2018} C. Bethea, G. Sheerin, J. Mace, and R. King, with G. Luo and G. O'Connor, ``Managing load,'' ch. 11 in B. Beyer, N. R. Murphy, D. K. Rensin, K. Kawahara, and S. Thorne, Eds., \emph{The Site Reliability Workbook}. O'Reilly Media, 2018. [Online]. Available: \url{https://sre.google/workbook/managing-load/}, accessed Oct.\ 15, 2026.
+\bibitem{incaws2011} Amazon Web Services, ``Summary of the Amazon EC2 and Amazon RDS service disruption in the US East region,'' Apr.\ 2011. [Online]. Available: \url{https://aws.amazon.com/message/65648/}, accessed Oct.\ 15, 2026.
+\bibitem{incaws2014} Amazon Web Services, ``Summary of the Amazon SimpleDB service disruption,'' Jun.\ 2014. [Online]. Available: \url{https://aws.amazon.com/message/65649/}, accessed Oct.\ 15, 2026.
+\bibitem{incslack2021} L. Nolan, ``Slack's outage on January 4th 2021,'' Slack Engineering, Feb.\ 2021. [Online]. Available: \url{https://slack.engineering/slacks-outage-on-january-4th-2021/}, accessed Oct.\ 15, 2026.
+\bibitem{incauth02021} Auth0, ``2021-04-20 -- US-1 full service disruption: Detailed root cause analysis,'' 2021. [Online]. Available: \url{https://cdn.auth0.com/blog/Detailed_Root_Cause_Analysis_(RCA)_4-2021.pdf}, accessed Oct.\ 15, 2026.
+\bibitem{incaws2021} Amazon Web Services, ``Summary of the AWS service event in the Northern Virginia (US-EAST-1) region,'' Dec.\ 2021. [Online]. Available: \url{https://aws.amazon.com/message/12721/}, accessed Oct.\ 15, 2026.
+\bibitem{incaws2025} Amazon Web Services, ``Summary of the Amazon DynamoDB service disruption in the Northern Virginia (US-EAST-1) region,'' Oct.\ 2025. [Online]. Available: \url{https://aws.amazon.com/message/101925/}, accessed Oct.\ 15, 2026.
+\bibitem{incdiscord2026} Discord, ``You've got (too much) mail: Behind the scenes of the 3/25/26 voice outage,'' 2026. [Online]. Available: \url{https://discord.com/blog/behind-the-scenes-of-the-3-25-26-voice-outage}, accessed Oct.\ 15, 2026.
+\bibitem{incgithub2026} GitHub, ``GitHub availability report: August 2026,'' 2026. [Online]. Available: \url{https://github.blog/news-insights/company-news/github-availability-report-august-2026/}, accessed Oct.\ 15, 2026.
 \end{thebibliography}
 
 \end{document}

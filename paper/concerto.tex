@@ -1,8 +1,10 @@
 %% Too Many Hands on the Throttle
 %% IEEE conference submission draft (B1)
-%% STATUS (rev. 2026-10-11): formalism revised to match simulator evidence;
-%% configuration audit completed (audit/mechanisms.csv); simulator results
-%% reported against PREREG.md. Testbed campaigns v2--v5 run (v5: P1 confirmed, V4 fail). Incident catalogue pending.
+%% STATUS (rev. 2026-10-14): formalism matches simulator evidence; configuration
+%% audit completed (audit/mechanisms.csv); simulator results reported against
+%% PREREG.md. Testbed campaigns v2--v6 run (v5: P1 confirmed on a step load;
+%% v6: P1 generalizes to a ramp load; V4 latency fails in both). The incident
+%% catalogue is described as method only in the "Incident catalogue" subsection (not yet compiled; the text says so).
 %% Target: AGENT'27 @ ICSE 2027 (8 pp + refs, IEEE, single-blind).
 
 \documentclass[conference]{IEEEtran}
@@ -54,11 +56,12 @@ unmodified Kubernetes and Envoy, the trap reproduced in all 9 below-target
 trials across three shedder types and two application shapes (attainment
 0.29--0.50, 2--3 of 5 replicas). All 8 above-target trials escaped (attainment
 $\ge$0.99). A threshold-aware shared authority budget (P1), started from
-the trap configuration, passed its pre-registered test ($n=5$ per arm):
-attainment 0.994 vs.\ 0.269 for independent agents and 1.000 for a
-no-shedding reference, with every trial reaching 6 replicas. Its
-pre-registered latency claim failed, an earlier run was inconclusive, and
-other remedies were negative or marginal; we report all of it. We release the simulator,
+the trap configuration, passed pre-registered tests under two load shapes ($n=5$ per arm each): on
+a step, attainment 0.994 vs.\ 0.269 for independent agents (no-shedding
+reference 1.000); on a ramp to a higher peak, with parameters untuned, 0.996
+vs.\ 0.216 (reference 1.000), scaling as fully as the reference both times.
+It did \emph{not} improve tail latency in either setting, an earlier run was
+inconclusive, and other remedies were negative or marginal; we report all of it. We release the simulator,
 testbed, pre-registrations and raw traces.
 \end{abstract}
 
@@ -146,8 +149,9 @@ on unmodified components.
 above-target trials escaped, across three shedders and two application shapes.
 \item \textbf{A pre-registered test of a remedy} (Section
 \ref{sec:p1}): a threshold-aware shared authority budget escapes the trap
-(attainment 0.994 vs.\ 0.269, $n=5$ per arm, one testbed), though its
-latency claim failed.
+under a step load (0.994 vs.\ 0.269) and, untuned, under a ramp to a higher
+peak (0.996 vs.\ 0.216), $n=5$ per arm on one testbed; it failed its tail
+latency claim in both.
 \item \textbf{Negative evidence on arbitration} (Section
 \ref{sec:design}), including two failed hypotheses in simulation, a testbed
 budget that made matters worse, and an inconclusive first run of P1.
@@ -155,7 +159,7 @@ budget that made matters worse, and an inconclusive first run of P1.
 
 We are explicit about scope. Our central evidence is the audit and pre-registered testbed experiments on
 the observation-coupling trap. Arbitration is discussed briefly (Section \ref{sec:design}). One
-principle, P1, has a positive pre-registered result on one testbed; the rest
+principle, P1, has positive pre-registered results for two load shapes on one testbed; the rest
 of the evidence is negative, inconclusive or marginal. No claim here concerns
 production systems.
 
@@ -603,7 +607,7 @@ little goodput. A budget must respect not only the shedder's threshold ordering 
 the autoscaler's tolerance band; once the testbed did, the threshold-aware
 budget worked (Section~\ref{sec:p1}).
 
-\subsection{A Confirmed Remedy: Threshold-Aware Budget (P1, v5)}
+\subsection{A Confirmed Remedy: Threshold-Aware Budget (P1, v5--v6)}
 \label{sec:p1}
 \textbf{Design.} PREREG v5 was committed before any v5 trial. It fixes the
 v4 calibration fault: from v4 data, saturated pods served about 36.8\,req/s,
@@ -621,21 +625,28 @@ with $\ge$5 replicas. V3: P1CTL $\ge$ SAFE $-0.05$. V4 (reported separately):
 P1CTL p99 latency in the first 120\,s of the step $\le 0.8\times$ SAFE.
 
 \begin{table}[t]
-\caption{P1 confirmatory run (PREREG v5, $n=5$ per arm, final 240\,s; p99 over first 120\,s of the step).}
+\caption{P1 runs, $n=5$ per arm. Attainment over the final 240\,s; p99 (ms)
+over the first 120\,s of the step (A) or load phase (B).}
 \label{tab:p1}
 \centering\footnotesize
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-Arm & $n$ & Attain.\ (mean, range) & Repl. & p99 (ms) \\
+Arm & Attain.\ (mean, range) & Repl. & p99 \\
 \midrule
-INDEP (trap) & 5 & 0.269 (0.267--0.272) & 2 (all) & 316.7 \\
-P1CTL & 5 & 0.994 (0.993--0.995) & 6 (all) & 151.7 \\
-SAFE & 5 & 1.000 (1.000--1.000) & 6 (all) & 141.8 \\
+\multicolumn{4}{@{}l}{\emph{A: step 50$\to$160\,req/s (PREREG v5)}} \\
+INDEP (trap) & 0.269 (0.267--0.272) & 2 (all) & 316.7 \\
+P1CTL & 0.994 (0.993--0.995) & 6 (all) & 151.7 \\
+SAFE & 1.000 (1.000--1.000) & 6 (all) & 141.8 \\
+\midrule
+\multicolumn{4}{@{}l}{\emph{B: ramp 50$\to$200, hold 200\,req/s (PREREG v6)}} \\
+INDEP (trap) & 0.216 (0.214--0.219) & 2 (all) & 273.7 \\
+P1CTL & 0.996 (0.995--0.998) & 8 (all) & 139.3 \\
+SAFE & 1.000 (0.999--1.000) & 8 (all) & 88.4 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Result} (Table~\ref{tab:p1}). All 15 trials were valid on the first
+\textbf{Result, setting A} (Table~\ref{tab:p1}). All 15 trials were valid on the first
 attempt (maximum sample gap 6\,s); there were no reruns, exclusions or
 amendments. W0 PASS (5/5 SAFE trials at 6 replicas). V1 PASS (0.994 vs.\
 threshold 0.519). V2 PASS (all five P1CTL trials at 6 replicas). V3 PASS
@@ -643,9 +654,32 @@ threshold 0.519). V2 PASS (all five P1CTL trials at 6 replicas). V3 PASS
 its pre-registered criterion. \textbf{V4 FAIL}: P1CTL p99 was 151.7\,ms,
 above $0.8\times$ SAFE's 141.8\,ms $=113.5$\,ms. P1 recovers provisioning
 and goodput but does not beat the no-shedding reference on early latency,
-which is what protection is supposed to buy. The result is one plant, one
-node, one load shape and $n=5$; it shows that a threshold-aware budget can
-escape the trap, not that it generalizes.
+which is what protection is supposed to buy. The fleet settled at 6
+replicas, not the $\lceil 160/25\rceil=7$ that PREREG v5 stated. PREREG v6
+explains this before any v6 data: the HPA leaves $n$ alone while the per-pod
+ratio is within 10\% of target, so at 160\,req/s every $n$ in
+$[5.82, 7.11]$ is a resting point, and 6 is a correct HPA outcome. No v5
+verdict depends on it (W0 used $\ge$6, V2 $\ge$5).
+
+\textbf{Generalization, setting B} (PREREG v6, committed after v5 and before
+any v6 trial). Same plant, HPA and arms; only the load changes: a staircase
+ramp from 50 to 200\,req/s over 240\,s, then a 240\,s hold at 200, which
+needs the maximum fleet. P1CTL reuses the v5 rule and inputs unchanged, with
+no tuning to B. By the band argument, 8 replicas were predicted (range 7--8).
+W0 needs $\ge$4/5 SAFE trials at $\ge$7 replicas and V2 every P1CTL trial at
+$\ge$6; V1, V3, V4 are as in v5. Again all 15 trials were valid on the first
+attempt, with no reruns or amendments. W0 PASS (5/5 SAFE at 8). V1 PASS
+(0.996 vs.\ threshold 0.466). V2 PASS (all P1CTL at 8, matching the
+prediction). V3 PASS (0.996 vs.\ 0.950). By its pre-registered criterion, P1
+generalizes to setting B. \textbf{V4 FAIL} again: 139.3\,ms vs.\
+$0.8\times 88.4=70.8$\,ms.
+
+\textbf{Reading.} In both settings P1 restores throughput attainment and
+scaling to the level of the no-shedding reference. It did \emph{not}
+improve tail latency in either: its early-window p99 was higher than the
+reference's both times (V4 failed twice). The evidence is one node, one
+plant, two load shapes and $n=5$ per arm; it shows that a threshold-aware
+budget escapes the trap under two disturbances, not that it holds in general.
 
 \section{Related Work}
 \label{sec:related}
@@ -705,7 +739,7 @@ shedder was pinned to a fixed limit.
 \textbf{Internal validity.} Thresholds were pre-registered
 (\texttt{PREREG.md}) before each run. Trials with sampling gaps above 10\,s or
 truncated load phases are discarded and rerun, and every such
-trial is reported. The v5 P1 run had no invalid trials and used
+trial is reported. The v5 and v6 P1 runs had no invalid trials and used
 wall-clock gap checks throughout. In the v4 campaign, samplers switched mid-campaign from
 wall-clock to monotonic timestamps after VM suspends. Later trials therefore
 cannot detect a suspend through the gap rule. Their load durations (from
@@ -715,13 +749,17 @@ includes a disclosed exception that allows ejecting a host with under 10\%
 success.
 
 \textbf{External validity.} One node, synthetic services, and two or three
-mechanisms at a time. Production fleets are larger, heterogeneous, and
+mechanisms at a time. P1 was tested on one plant under two load shapes (a
+step and a ramp); other plants, service times and fleet sizes are untested. Production fleets are larger, heterogeneous, and
 configured differently. The simulator covers scale only in a model sense.
 
 \textbf{Conclusion validity.} Testbed trials number two or three per arm
-(five in the v5 P1 run). The v5 HPA target was chosen from v4 throughput
-data; this was disclosed and pre-registered before any v5 trial, but the
-confirmation rests on that calibration. The effects are large and consistent (below-target attainment $\le$0.50 vs.\ $\ge$0.99 above target), but small $n$ precludes fine-grained
+(five in each of the v5 and v6 P1 runs). The v5 HPA target was chosen from
+v4 throughput data; this was disclosed and pre-registered before any v5
+trial, but the confirmation rests on that calibration. The v6 design was
+pre-registered after v5's results were known; it was fixed before any v6
+data and reuses the v5 parameters, but the choice of setting B was not
+blind to v5. The effects are large and consistent (below-target attainment $\le$0.50 vs.\ $\ge$0.99 above target), but small $n$ precludes fine-grained
 estimates. Simulator CIs are normal approximations over 20--30 seeds.
 
 \textbf{Negative results.} The full arbiter lost to expert retuning in
@@ -730,7 +768,7 @@ simulation (RQ2/RQ3). We report this rather than tune the baseline down.
 \section{Artifact Availability}
 The simulator, audit table with per-cell source URLs, testbed manifests,
 trial scripts, raw replica traces, analysis code, and the pre-registrations
-(\texttt{PREREG.md} v1--v5, committed before the corresponding runs) are public at
+(\texttt{PREREG.md} v1--v6, committed before the corresponding runs) are public at
 \url{https://github.com/pandeyaby/CONCERTO}. The testbed is reproducible on a
 single VM at no cost (\texttt{testbed/setup.sh}).
 
@@ -743,9 +781,10 @@ reversing the ordering escaped it every time. No audited configuration surface
 would have warned the operator. Remedies are harder. A plain retuning beat our
 simulated arbiter, and a naive shared budget recreated the trap it was meant
 to prevent. A threshold-aware shared budget, once the testbed respected the
-autoscaler's tolerance band, escaped the trap in its pre-registered test
-(0.994 vs.\ 0.269, all trials at 6 replicas), though not with the latency
-benefit we predicted, and on a single testbed with $n=5$. A $\Gamma$ gate
+autoscaler's tolerance band, escaped the trap in pre-registered tests under a step load (0.994 vs.\
+0.269) and, untuned, under a ramp to a higher peak (0.996 vs.\ 0.216). It
+restored attainment and scaling but did not improve tail latency in either
+setting, and the evidence is one node and plant with $n=5$ per arm. A $\Gamma$ gate
 prevented mass ejection without a pre-registered goodput gain. We therefore
 offer a tested account of failure, a method for finding such failures, and
 one remedy that worked under test, with general arbitration as open work.

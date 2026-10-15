@@ -198,9 +198,11 @@ detector both change effective serving capacity, in opposite directions. In
 each case the plant receives the sum of the corrections while each
 controller was tuned as though it were applying the whole correction alone.
 
-Within a single proxy, Envoy already recognizes one such interaction: its
-retry budget is configured as a circuit-breaker threshold that bounds
-concurrent retries to a fraction of active requests \cite{envoycb}.
+Vendors recognize a few such pairs. Within one proxy, Envoy's retry budget
+is a circuit-breaker threshold that bounds concurrent retries to a fraction
+of active requests \cite{envoycb}. Kubernetes warns that the vertical pod
+autoscaler should not be used with the HPA on the same CPU or memory
+metric \cite{vpalimits}; it offers a warning, not a coordination mechanism.
 
 \subsection{Observation coupling}
 
@@ -523,7 +525,7 @@ ordering from outside the agents.
 \section{Testing Method}
 \label{sec:method}
 We test agent composition in three layers, each pre-registered in a public
-\texttt{PREREG.md} before the corresponding runs (v1--v3b). (i) A
+\texttt{PREREG.md} before the corresponding runs (v1--v6). (i) A
 \emph{static audit} (Section \ref{sec:evidence}) of what each agent senses and
 actuates, to find pairs that share a variable or a signal. (ii) \emph{Model
 checks} in a deterministic simulator, to see whether the structural conditions
@@ -567,7 +569,7 @@ vs.\ $40$\,req/s per pod.
 \item \textbf{Adaptive concurrency} (v3b): \texttt{adaptive\_concurrency}
 pinned to limit $L=2$ vs.\ $6$, rejecting with 503.
 \item \textbf{Two tiers} (v3b): sidecar at 40\,req/s plus an edge
-\texttt{local\_ratelimit} at 80\,req/s total vs.\ edge off.
+\texttt{local\_ratelimit} at 80\,req/s total vs.\ 200 (effectively off).
 \end{itemize}
 
 \begin{table}[t]
@@ -595,9 +597,10 @@ attainment $\ge$0.99. In the token-bucket case the HPA read 30\,req/s per pod
 against a 35\,req/s target and never scaled. Each controller behaved as
 documented; the failure lives only in the composition.
 
-\textbf{Validity notes.} One above-target two-tier trial failed the gap rule.
-A relaxed rule added mid-campaign (gap $\le$600\,s after kubectl stalls)
-admits it and changes no verdict; the original rule is primary. One RQ1
+\textbf{Validity notes.} Two two-tier trials failed the gap rule: an
+above-target trial (gap 424\,s) and a below-target rerun (376\,s). A relaxed
+rule added mid-campaign (gap $\le$600\,s after kubectl stalls) admits both and
+changes no verdict; the original rule is primary. One RQ1
 trial truncated by a VM rollback was rerun. The pinned adaptive-concurrency
 limit tests the 503 path, not the gradient controller's dynamics. The box
 kernel lacks the iptables \texttt{statistic} match, so the edge Envoy, not
@@ -845,16 +848,16 @@ one remedy that worked under test, with general arbitration as open work.
 \bibitem{johansen2013} T. A. Johansen and T. I. Fossen, ``Control allocation: A survey,'' \emph{Automatica}, vol. 49, no. 5, pp. 1087--1103, 2013.
 \bibitem{lorido2014} T. Lorido-Botr\'an, J. Miguel-Alonso, and J. A. Lozano, ``A review of auto-scaling techniques for elastic applications in cloud environments,'' \emph{Journal of Grid Computing}, vol. 12, no. 4, pp. 559--592, 2014.
 \bibitem{welsh2003} M. Welsh and D. Culler, ``Adaptive overload control for busy internet servers,'' in \emph{USENIX Symposium on Internet Technologies and Systems (USITS)}, 2003.
-\bibitem{netflixlimits} Netflix Technology Blog, ``Performance under load: Adaptive concurrency limits,'' 2018. [Online]. Available: \url{https://netflixtechblog.medium.com/performance-under-load-3e6fa9a60581}
+\bibitem{netflixlimits} E. Landau, W. Thurston, and T. Bozarth, ``Performance under load,'' Netflix Technology Blog, 2018. [Online]. Available: \url{https://netflixtechblog.medium.com/performance-under-load-3e6fa9a60581}
 \bibitem{sre2016} B. Beyer, C. Jones, J. Petoff, and N. R. Murphy, Eds., \emph{Site Reliability Engineering: How Google Runs Production Systems}. O'Reilly Media, 2016, ch. 22, ``Addressing Cascading Failures.''
 \bibitem{buildersretry} M. Brooker, ``Timeouts, retries, and backoff with jitter,'' \emph{Amazon Builders' Library}. [Online]. Available: \url{https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/}
 \bibitem{buildersshed} D. Yanacek, ``Using load shedding to avoid overload,'' \emph{Amazon Builders' Library}. [Online]. Available: \url{https://aws.amazon.com/builders-library/using-load-shedding-to-avoid-overload/}
-\bibitem{gan2019} Y. Gan et al., ``An open-source benchmark suite for microservices and their hardware-software implications for cloud and edge systems,'' in \emph{ASPLOS}, 2019.
 \bibitem{k8shpa} Kubernetes, ``Horizontal pod autoscaling.'' [Online]. Available: \url{https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/}, accessed Oct.\ 2026.
 \bibitem{envoyoutlier} Envoy v1.39.3, ``Outlier detection.'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/intro/arch_overview/upstream/outlier}
 \bibitem{envoypanic} Envoy v1.39.3, ``Panic threshold.'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/intro/arch_overview/upstream/load_balancing/panic_threshold}
 \bibitem{envoycb} Envoy v1.39.3, ``Circuit breakers (config.cluster.v3).'' [Online]. Available: \url{https://www.envoyproxy.io/docs/envoy/v1.39.3/api-v3/config/cluster/v3/circuit_breaker.proto}
 \bibitem{istiodr} Istio 1.31, ``Destination rule.'' [Online]. Available: \url{https://istio.io/v1.31/docs/reference/config/networking/destination-rule/}
+\bibitem{vpalimits} Kubernetes Autoscaler project, ``Vertical Pod Autoscaler: Known limitations.'' [Online]. Available: \url{https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/docs/known-limitations.md}, accessed Oct.\ 15, 2026.
 \bibitem{hellerstein2004} J. L. Hellerstein, Y. Diao, S. Parekh, and D. M. Tilbury, \emph{Feedback Control of Computing Systems}. Wiley-IEEE Press, 2004, doi:10.1002/047166880X.
 \bibitem{autopilot2020} K. Rzadca et al., ``Autopilot: Workload autoscaling at Google,'' in \emph{Proc. EuroSys}, 2020, doi:10.1145/3342195.3387524.
 \bibitem{firm2020} H. Qiu, S. S. Banerjee, S. Jha, Z. T. Kalbarczyk, and R. K. Iyer, ``FIRM: An intelligent fine-grained resource management framework for SLO-oriented microservices,'' in \emph{Proc. USENIX OSDI}, 2020.

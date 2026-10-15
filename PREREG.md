@@ -228,3 +228,63 @@ design was underpowered/miscalibrated. This is a plant calibration fault, not ev
 - V4 (reported separately): P1CTL mean p99 2xx latency in the first 120 s of the 160 req/s phase ≤ 0.8 × SAFE.
 P1 is "supported on the testbed" only if W0 and V1–V3 all pass. Any deviation during the campaign is recorded as a
 numbered, disclosed amendment (v5-A1, …) appended below this section; v1–v5 text is never edited.
+
+# Pre-registration v6: generalization of P1 to a second load shape (committed before any v6 trial; v1–v5 above are unchanged)
+Scope: P1 only. Question: does the v5 result (W0, V1–V3 PASS) hold when the disturbance is a **ramp to a higher peak**
+instead of one step? Code: `testbed/v6/` (copy of `testbed/v5/` with minimal changes: namespace `v6p1`, load shape in
+trial.sh, ramp files and replica thresholds in analyze.py). Results: `testbed/v6/runs/`, `testbed/v6/results_v6.json`.
+
+## Setting B and why
+- **Load (the only design change):** 40 req/s for 60 s (warm-up, not scored); then a staircase ramp 50, 60, …, 200 req/s
+  (16 steps × 15 s = 240 s); then 200 req/s held for 240 s. Open loop, `keepalive=false`, timeout 10 s. Vegeta 12 has
+  no linear-ramp CLI pacer, so the ramp is 16 back-to-back constant-rate attacks. Load phase = ramp + hold = 480 s,
+  which matches v5, so the validity rule and the 240 s scoring window carry over unchanged.
+- **Why a ramp to 200 and not a new service time.** (1) A ramp is a qualitatively different disturbance: the controller
+  must track a moving demand while the HPA scales in several stages, not react once to a step. (2) The higher peak
+  needs the maximum fleet (8 replicas, see below), so it tests whether the budget keeps scaling all the way up rather than
+  only to the mid-range. (3) Changing the pod service time would need a new POD_CAP calibration run before the
+  rule can be applied. That is a second unregistered measurement, and it would change the plant and the load together.
+  Keeping the plant fixed isolates the load shape, and it lets the rule's inputs (TARGET 25, POD_CAP 36.8, SVC 0.109,
+  M 0.15, W 4) be reused exactly. (4) Feasibility: 8 × 36.8 ≈ 294 req/s of capacity ≥ 200. A trial is ≈ 9 min of load
+  plus ≈ 2–3 min of namespace setup, so 15 trials take ≈ 3 h.
+- Repeated bursts were considered and rejected: the HPA's 5-min scale-down stabilization keeps replicas high
+  between bursts, so later bursts would not exercise the trap. That makes the design less informative per hour.
+
+## Parameters (identical to v5 except load and namespace)
+- Plant, HPA (target 25 req/s/pod `envoy_ok_rps`, 2–8 replicas, default 10 % tolerance), shedders: as v5.
+- INDEP: sidecar cap 2, edge cap 8. SAFE: sidecar cap 6, edge cap 1000.
+- P1CTL: p1_ctl.py **byte-identical in logic to v5** (TARGET 25, POD_CAP 36.8, SVC 0.109, M 0.15, W 4). By the same
+  threshold-aware rule: sidecar cap = max(4, ceil(1.15·25·0.109)) = 4; edge cap = ceil(n·36.8·0.109·(1.10+0.20(1−s))),
+  e.g. 42 at n = 8, s = 0. No parameter is tuned to setting B.
+
+## Replica prediction (and the v5 6-vs-7 explained)
+The HPA sets desired = ceil(n · m/T) and does nothing while |m/T − 1| ≤ 0.10 (m = mean per-pod 2xx rate, T = 25).
+With load L fully served by n pods, m = L/n. Every n with L/(1.10·T) ≤ n ≤ L/(0.90·T) is a resting point. At
+L = 160 that is 5.82 ≤ n ≤ 7.11, so n ∈ {6, 7}. v5 predicted ceil(160/25) = 7, which ignored the tolerance band. Once
+at 6 (160/6 = 26.7, ratio 1.067), the HPA stops, and scale-down is never triggered. The pre-scale-up metric lag
+(new pods enter the average with near-zero rate) makes the lower edge of the band the typical landing point. So
+6 was a correct outcome of the HPA and not a plant fault. The v5 verdicts are unaffected, since W0 used ≥ 6 and V2 used ≥ 5.
+For v6 at L = 200: band 200/27.5 = 7.27 ≤ n ≤ 200/22.5 = 8.9, capped at maxReplicas 8, so **n = 8 predicted** for SAFE
+and P1CTL. 7 is possible only if a trial ends while still scaling (7 pods: 28.6/25 = 1.14 > 1.10, so the HPA scales out).
+**Predicted range 7–8, point 8.** INDEP: predicted to stay at 2 (each sidecar trips at ≈ 18 req/s/pod < 25, and the
+edge cap 8 admits ≈ 73 req/s). Predicted INDEP attainment ≈ 0.15–0.25, P1CTL ≥ 0.97, SAFE ≥ 0.99.
+
+## Validity, harness, rerun policy (identical to v5)
+- Valid iff load phase (first ramp request to last hold request) ≥ 470 s and max wall-clock replica-sample gap ≤ 10 s.
+- Cleanup of p1_ctl.py, vegeta and sampler processes before and after every trial (abort with exit 3 if any survive).
+  The namespace is deleted and recreated per trial.
+- N = 5 per arm, interleaved p1ctl, indep, safe × 5. An invalid trial is renamed `invalid_<label>` and rerun as
+  `<label>b`, then `<label>c`. Every invalid trial is reported. If any arm has < 5 valid trials, all verdicts are INCONCLUSIVE.
+
+## Hypotheses (attainment on the final 240 s = the 200 req/s hold; fixed before any data)
+- W0 (informativeness gate): ≥ 4 of 5 SAFE trials end with ≥ 7 replicas. If W0 fails, V1–V4 are INCONCLUSIVE.
+- V1: P1CTL mean attainment ≥ INDEP mean + 0.25.
+- V2: every valid P1CTL trial ends with ≥ 6 replicas.
+- V3: P1CTL mean attainment ≥ SAFE mean − 0.05.
+- V4 (secondary, reported separately): P1CTL mean p99 2xx latency in the first 120 s of the load phase ≤ 0.8 × SAFE.
+- Replica thresholds are set relative to the predicted 8 the same way v5's were relative to its prediction (W0 one
+  below the point, V2 two below). Thresholds for V1, V3 and V4 are unchanged.
+**Generalization verdict:** P1 "generalizes to setting B" iff W0, V1, V2 and V3 all PASS. If W0 passes and any of
+V1–V3 fails, P1 **does not generalize** to setting B and the paper must scope the v5 claim to the step load. If W0 fails,
+the result is INCONCLUSIVE. V4 never changes the verdict. Deviations are recorded as appended amendments v6-A1, …
+below this section. No PREREG text (v1–v6) is edited.

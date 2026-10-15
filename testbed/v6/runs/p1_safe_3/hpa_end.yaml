@@ -1,0 +1,54 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"autoscaling/v2","kind":"HorizontalPodAutoscaler","metadata":{"annotations":{},"name":"app","namespace":"v6p1"},"spec":{"maxReplicas":8,"metrics":[{"pods":{"metric":{"name":"envoy_ok_rps"},"target":{"averageValue":"25","type":"AverageValue"}},"type":"Pods"}],"minReplicas":2,"scaleTargetRef":{"apiVersion":"apps/v1","kind":"Deployment","name":"app"}}}
+  creationTimestamp: "2026-10-15T02:58:38Z"
+  name: app
+  namespace: v6p1
+  resourceVersion: "5519"
+  uid: 6a64033b-cf0c-42fe-b20d-52a86729d46f
+spec:
+  maxReplicas: 8
+  metrics:
+  - pods:
+      metric:
+        name: envoy_ok_rps
+      target:
+        averageValue: "25"
+        type: AverageValue
+    type: Pods
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app
+status:
+  conditions:
+  - lastTransitionTime: "2026-10-15T02:58:53Z"
+    message: recommended size matches current size
+    reason: ReadyForNewScale
+    status: "True"
+    type: AbleToScale
+  - lastTransitionTime: "2026-10-15T02:59:08Z"
+    message: the HPA was able to successfully calculate a replica count from pods
+      metric envoy_ok_rps
+    reason: ValidMetricFound
+    status: "True"
+    type: ScalingActive
+  - lastTransitionTime: "2026-10-15T02:59:08Z"
+    message: the desired count is within the acceptable range
+    reason: DesiredWithinRange
+    status: "False"
+    type: ScalingLimited
+  currentMetrics:
+  - pods:
+      current:
+        averageValue: 24995m
+      metric:
+        name: envoy_ok_rps
+    type: Pods
+  currentReplicas: 8
+  desiredReplicas: 8
+  lastScaleTime: "2026-10-15T03:04:24Z"
